@@ -8,7 +8,10 @@
 		"url": "https://github.com/tyler-johnson/superfast.git"
 	},
 	"main": "index.js",
-	"bin": "sf",
+	"bin": {
+		"sf": "cli.js",
+		"superfast": "cli.js"
+	},
 	"scripts": {
 		"lint": "jshint lib/*.js lib/*/*.js",
 		"build": "make",

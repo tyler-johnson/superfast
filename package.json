@@ -1,36 +1,40 @@
 {
-  "name": "superfast",
-  "version": "0.0.0",
-  "description": "",
-  "author": "Tyler Johnson <tyler@vintyge.com>",
-  "main": "index.js",
-  "scripts": {
-    "lint": "jshint lib/*.js lib/*/*.js",
-    "build": "make",
-    "prepublish": "npm run lint && npm run build"
-  },
-  "dependencies": {
-    "async-while": "~1.1.0",
-    "chokidar": "~1.2.0",
-    "cpr": "~1.0.0",
-    "es6-promisify": "~3.0.0",
-    "esprima": "~2.7.0",
-    "estraverse": "~4.1.1",
-    "fs-promise": "~0.3.1",
-    "ignore": "~2.2.19",
-    "lodash": "~3.10.1",
-    "minimist": "~1.2.0",
-    "mkdirp": "~0.5.1",
-    "rimraf": "~2.4.3",
-    "rollup-plugin-string": "~1.0.1",
-    "slug": "~0.9.1",
-    "uuid": "^2.0.1"
-  },
-  "keywords": [],
-  "license": "MIT",
-  "devDependencies": {
-    "jshint": "^2.8.0",
-    "rollup": "~0.21.0",
-    "tape": "~4.2.2"
-  }
+	"name": "superfast",
+	"version": "0.0.0",
+	"description": "",
+	"author": "Tyler Johnson <tyler@vintyge.com>",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/tyler-johnson/superfast.git"
+	},
+	"main": "index.js",
+	"scripts": {
+		"lint": "jshint lib/*.js lib/*/*.js",
+		"build": "make",
+		"prepublish": "npm run lint && npm run build"
+	},
+	"dependencies": {
+		"async-while": "~1.1.0",
+		"chokidar": "~1.2.0",
+		"cpr": "~1.0.0",
+		"es6-promisify": "~3.0.0",
+		"esprima": "~2.7.0",
+		"estraverse": "~4.1.1",
+		"fs-promise": "~0.3.1",
+		"ignore": "~2.2.19",
+		"lodash": "~3.10.1",
+		"minimist": "~1.2.0",
+		"mkdirp": "~0.5.1",
+		"rimraf": "~2.4.3",
+		"rollup-plugin-string": "~1.0.1",
+		"slug": "~0.9.1",
+		"uuid": "~2.0.1"
+	},
+	"devDependencies": {
+		"jshint": "~2.8.0",
+		"rollup": "~0.21.0",
+		"tape": "~4.2.2"
+	},
+	"keywords": [],
+	"license": "MIT"
 }

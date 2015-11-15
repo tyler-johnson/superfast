@@ -1,6 +1,6 @@
 {
 	"name": "superfast",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"description": "",
 	"author": "Tyler Johnson <tyler@vintyge.com>",
 	"repository": {
@@ -8,6 +8,7 @@
 		"url": "https://github.com/tyler-johnson/superfast.git"
 	},
 	"main": "index.js",
+	"bin": "sf",
 	"scripts": {
 		"lint": "jshint lib/*.js lib/*/*.js",
 		"build": "make",

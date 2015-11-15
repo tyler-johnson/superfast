@@ -1,9 +1,4 @@
-require("superfast/<%= $.type %>");
-<% if ($.files) $.files.forEach(function(f) { %>
-require(<%= JSON.stringify("./" + f) %>);<% }); %>
-
-setTimeout(function() {
-	if (typeof process.send === "function") {
-		process.send("READY");
-	}
-}, 5*1000);
+require("<%= $.runtime %>");
+<% if ($.files) $.files.forEach(function(f) {
+	if (f.type === "script") { %>
+require(<%= JSON.stringify("./build/" + f.out) %>);<% } }); %>

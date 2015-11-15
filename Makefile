@@ -1,6 +1,6 @@
 BIN = ./node_modules/.bin
 LIB = $(wildcard lib/* lib/*/*)
-OUT = index.js server.js client.js
+OUT = index.js
 SRC = $(OUT:%.js=lib/%.js)
 
 build: $(OUT)

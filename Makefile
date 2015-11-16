@@ -17,7 +17,11 @@ build: $(OUT)
 		var result = bundle.generate({\
 			format: \"cjs\"\
 		});\
-		console.log(result.code);\
+		process.stdout.write(result.code);\
+	}).catch(function(e) {\
+		process.nextTick(function() {\
+			throw e;\
+		});\
 	});" >> $@
 
 clean:

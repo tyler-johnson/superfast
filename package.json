@@ -32,7 +32,6 @@
 		"mkdirp": "~0.5.1",
 		"npm-latest": "~1.0.1",
 		"rimraf": "~2.4.3",
-		"rollup-plugin-string": "~1.0.1",
 		"slug": "~0.9.1",
 		"through2": "~2.0.0",
 		"uuid": "~2.0.1"
@@ -40,6 +39,8 @@
 	"devDependencies": {
 		"jshint": "~2.8.0",
 		"rollup": "~0.21.0",
+		"rollup-plugin-string": "~1.0.1",
+		"rollup-plugin-babel": "~1.0.0",
 		"tape": "~4.2.2"
 	},
 	"keywords": [],

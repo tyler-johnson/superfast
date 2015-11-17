@@ -33,7 +33,7 @@ export ROLLUP
 %.js: lib/%.js $(LIB)
 	# $< -> $@
 	@echo "#!/usr/bin/env node\n\n" > $@
-	@node -e "$$ROLLUP" > $@
+	@node -e "$$ROLLUP" >> $@
 
 clean:
 	rm $(OUT)

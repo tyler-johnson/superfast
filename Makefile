@@ -11,7 +11,7 @@ build: $(OUT)
 	@node -e "require(\"rollup\").rollup({\
 		entry: \"$<\",\
 		plugins: [ require(\"rollup-plugin-string\")({\
-	        extensions: [\".jst\"]\
+	        extensions: [\".jst\",\".txt\"]\
 	    }) ]\
 	}).then(function(bundle) {\
 		var result = bundle.generate({\

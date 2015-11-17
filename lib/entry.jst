@@ -1,4 +1,7 @@
-require("<%= $.runtime %>");
+// Packages
+<% if ($.packages) $.packages.forEach(function(f) { %>require(<%= JSON.stringify(f) %>);
+<% }); %>
+// Internal Files
 <% if ($.files) $.files.forEach(function(f) {
-	if (f.type === "script") { %>
-require(<%= JSON.stringify("./build/" + f.out) %>);<% } }); %>
+	if (f.type === "script") { %>require(<%= JSON.stringify("./build/" + f.out) %>);
+<% } }); %>

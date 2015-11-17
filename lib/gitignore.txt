@@ -1,0 +1,5 @@
+# superfast gitignore
+
+*
+!.gitignore
+!package.json

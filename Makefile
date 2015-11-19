@@ -15,7 +15,7 @@ require("rollup").rollup({
 	var result = bundle.generate({
 		format: "cjs"
 	});
-	console.log(result.code);
+	process.stdout.write(result.code);
 }).catch(function(e) {
 	process.nextTick(function() {
 		throw e;
@@ -29,7 +29,7 @@ build: $(OUT)
 
 cli.js: lib/cli.js
 	# $< -> $@
-	@echo "#!/usr/bin/env node\n\n" > $@
+	@echo "#!/usr/bin/env node\n" > $@
 	@node -e "$$ROLLUP" >> $@
 
 %.js: lib/%.js $(LIB)

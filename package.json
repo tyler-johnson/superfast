@@ -1,6 +1,6 @@
 {
 	"name": "superfast",
-	"version": "0.0.9",
+	"version": "0.1.0",
 	"description": "",
 	"author": "Tyler Johnson <tyler@vintyge.com>",
 	"repository": {
@@ -14,7 +14,7 @@
 		"superfast": "cli.js"
 	},
 	"scripts": {
-		"lint": "jshint lib/*.js lib/*/*.js",
+		"lint": "jshint lib/",
 		"build": "make",
 		"prepublish": "npm run lint && npm run build"
 	},

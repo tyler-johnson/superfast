@@ -22,6 +22,7 @@
 		"async-while": "~1.1.0",
 		"backbone-lodash": "~1.1.0",
 		"browserify": "~12.0.1",
+		"chalk": "~1.1.1",
 		"chokidar": "~1.2.0",
 		"clean-css": "~3.4.8",
 		"cpr": "~1.0.0",

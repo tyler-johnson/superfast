@@ -27,8 +27,7 @@ endef
 
 export ROLLUP
 
-build: build-src build-man
-build-src: $(OUT)
+build: $(OUT)
 build-man: $(MAN) man/superfast.1
 
 cli.js: lib/cli.js
@@ -45,11 +44,11 @@ man:
 
 man/superfast.1: docs/index.md man/
 	# $< -> $@
-	@$(BIN)/remark -u remark-man $< > $@
+	@md2man-roff $< > $@
 
 man/superfast-%.1: docs/%.md man/
 	# $< -> $@
-	@$(BIN)/remark -u remark-man $< > $@
+	@md2man-roff $< > $@
 
 clean:
 	rm -rf $(OUT) man/

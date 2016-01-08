@@ -1,7 +1,9 @@
 BIN = ./node_modules/.bin
 LIB = $(wildcard lib/* lib/*/*)
 OUT = index.js cli.js
-SRC = $(OUT:%.js=lib/%.js)
+DOCS = $(wildcard docs/*.md)
+DOCSNOINDEX = $(filter-out docs/index.md, $(DOCS))
+MAN = $(DOCSNOINDEX:docs/%.md=man/superfast-%.1)
 
 define ROLLUP
 require("rollup").rollup({
@@ -25,18 +27,31 @@ endef
 
 export ROLLUP
 
-build: $(OUT)
+build: build-src build-man
+build-src: $(OUT)
+build-man: $(MAN) man/superfast.1
 
 cli.js: lib/cli.js
 	# $< -> $@
 	@echo "#!/usr/bin/env node\n" > $@
 	@node -e "$$ROLLUP" >> $@
 
-%.js: lib/%.js $(LIB)
+index.js: lib/index.js $(LIB)
 	# $< -> $@
 	@node -e "$$ROLLUP" > $@
 
+man:
+	@mkdir -p man
+
+man/superfast.1: docs/index.md man/
+	# $< -> $@
+	@$(BIN)/remark -u remark-man $< > $@
+
+man/superfast-%.1: docs/%.md man/
+	# $< -> $@
+	@$(BIN)/remark -u remark-man $< > $@
+
 clean:
-	rm $(OUT)
+	rm -rf $(OUT) man/
 
 .PHONY: build

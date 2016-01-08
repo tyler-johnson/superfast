@@ -6,8 +6,8 @@ superfast - A single-page, isomorphic web app framework.
 
 ## SYNOPSIS
 
-`superfast` \[`-h`|`-H`|`--help`\] \[`-v`|`-V`|`--version`\]
-          \[\[`-i`|`--ignore` *pattern*\] *...*\]
+`superfast` [`-h`|`-H`|`--help`] [`-v`|`-V`|`--version`]
+          [[`-i`|`--ignore` *pattern*] *...*]
           \<command\> \<args\>
 
 ## DESCRIPTION

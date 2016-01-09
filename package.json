@@ -1,7 +1,7 @@
 {
 	"name": "superfast",
-	"version": "0.1.5",
-	"description": "",
+	"version": "0.1.6",
+	"description": "A single-page, isomorphic web app framework.",
 	"author": "Tyler Johnson <tyler@vintyge.com>",
 	"repository": {
 		"type": "git",
@@ -59,6 +59,12 @@
 		"rollup": "~0.21.0",
 		"rollup-plugin-babel": "~1.0.0"
 	},
-	"keywords": [],
+	"keywords": [
+		"single",
+		"page",
+		"web",
+		"application",
+		"framework"
+	],
 	"license": "MIT"
 }

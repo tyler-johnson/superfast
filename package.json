@@ -13,6 +13,9 @@
 		"sf": "cli.js",
 		"superfast": "cli.js"
 	},
+	"directories": {
+		"man": "./man"
+	},
 	"scripts": {
 		"lint": "jshint lib/",
 		"build": "make",

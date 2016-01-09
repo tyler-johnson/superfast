@@ -1,6 +1,6 @@
 BIN = ./node_modules/.bin
 LIB = $(wildcard lib/* lib/outputs/* lib/transforms/* lib/utils/*)
-CLI = $(wildcard lib/cli.js lib/commands/* lib/utils/*) 
+CLI = $(wildcard lib/cli.js lib/commands/* lib/utils/*)
 OUT = index.js cli.js
 DOCS = $(wildcard docs/*.md)
 DOCSNOINDEX = $(filter-out docs/index.md, $(DOCS))
@@ -28,7 +28,8 @@ endef
 
 export ROLLUP
 
-build: $(OUT)
+build: build-src build-man
+build-src: $(OUT)
 build-man: $(MAN) man/superfast.1
 
 cli.js: lib/cli.js $(CLI)

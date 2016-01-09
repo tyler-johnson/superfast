@@ -14,7 +14,10 @@
 		"superfast": "cli.js"
 	},
 	"directories": {
-		"man": "./man"
+		"man": "./man",
+		"lib": "./lib",
+		"doc": "./docs",
+		"example": "./example"
 	},
 	"scripts": {
 		"lint": "jshint lib/",

@@ -18,7 +18,6 @@ This is the CLI tool for managing a local Superfast application. With this you c
 
 - Create new Superfast application.
 - Run a local development server out of the working directory.
-- Add and remove Superfast plugins.
 - Produce a production ready application bundle.
 
 ## OPTIONS
@@ -58,9 +57,3 @@ These are the names of the corresponding man entry for all Superfast commands. T
 
 `superfast-destroy`(1)
   Deletes all Superfast metadata associated with the current application.
-
-`superfast-add`(1)
-  Adds NPM dependencies to the Superfast build.
-
-`superfast-destroy`(1)
-  Removes previously added NPM dependencies.

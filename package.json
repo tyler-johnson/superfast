@@ -20,7 +20,7 @@
 	},
 	"scripts": {
 		"lint": "jshint lib/ test/",
-		"build": "make",
+		"build": "make build",
 		"test": "tape test/index.js",
 		"semantic-release": "semantic-release pre && npm publish && semantic-release post"
 	},

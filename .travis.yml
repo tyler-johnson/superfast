@@ -15,6 +15,10 @@ before_install:
   # install npm@3
   - npm i -g npm@^3.0.0
 
+  # install md2man for man pages
+  - rvm use 1.9.3
+  - gem install md2man
+
 before_script:
   # lint before doing anything
   - npm run lint

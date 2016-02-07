@@ -1,4 +1,5 @@
 # Superfast
+[![Build Status](https://travis-ci.org/tyler-johnson/superfast.svg?branch=master)](https://travis-ci.org/tyler-johnson/superfast)
 
 Superfast is a JavaScript framework for rapidly creating single-page, isomorphic web applications.
 

@@ -36,7 +36,7 @@
 		"fs-promise": "~0.3.1",
 		"ignore": "~2.2.19",
 		"inquirer": "~0.11.4",
-		"latest": "~0.2.0",
+		"latest-versions": "~1.0.1",
 		"lodash": "4.x",
 		"log-update": "~1.0.2",
 		"minimist": "~1.2.0",
@@ -54,7 +54,7 @@
 		"jshint": "~2.9.1",
 		"rollup": "~0.25.1",
 		"rollup-plugin-babel": "~2.3.9",
-		"semantic-release": "~4.3.5",
+		"semantic-release": "^4.3.5",
 		"tape": "~4.4.0"
 	},
 	"keywords": [

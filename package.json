@@ -1,6 +1,5 @@
 {
 	"name": "superfast",
-	"version": "0.2.0",
 	"description": "A single-page, isomorphic web app framework.",
 	"author": "Tyler Johnson <tyler@vintyge.com>",
 	"repository": {
@@ -20,9 +19,10 @@
 		"example": "./example"
 	},
 	"scripts": {
-		"lint": "jshint lib/",
+		"lint": "jshint lib/ test/",
 		"build": "make",
-		"prepublish": "npm run lint && npm run build"
+		"test": "tape test/index.js",
+		"semantic-release": "semantic-release pre && npm publish && semantic-release post"
 	},
 	"dependencies": {
 		"browserify": "~13.0.0",
@@ -36,7 +36,7 @@
 		"fs-promise": "~0.3.1",
 		"ignore": "~2.2.19",
 		"inquirer": "~0.11.4",
-		"latest": "~0.2.0",
+		"latest-versions": "~1.0.1",
 		"lodash": "4.x",
 		"log-update": "~1.0.2",
 		"minimist": "~1.2.0",
@@ -53,7 +53,9 @@
 		"babel-preset-es2015-rollup": "~1.1.1",
 		"jshint": "~2.9.1",
 		"rollup": "~0.25.1",
-		"rollup-plugin-babel": "~2.3.9"
+		"rollup-plugin-babel": "~2.3.9",
+		"semantic-release": "^4.3.5",
+		"tape": "~4.4.0"
 	},
 	"keywords": [
 		"single",

@@ -25,12 +25,12 @@ require("rollup").rollup({
 	});
 });
 endef
-
 export ROLLUP
 
+default: build-src
 build: build-src build-man
+
 build-src: $(OUT)
-build-man: $(MAN) man/superfast.1
 
 cli.js: lib/cli.js $(CLI)
 	# $< -> $@
@@ -40,6 +40,8 @@ cli.js: lib/cli.js $(CLI)
 index.js: lib/index.js $(LIB)
 	# $< -> $@
 	@node -e "$$ROLLUP" > $@
+
+build-man: $(MAN) man/superfast.1
 
 man:
 	@mkdir -p man
@@ -55,4 +57,4 @@ man/superfast-%.1: docs/%.md man/
 clean:
 	rm -rf $(OUT) man/
 
-.PHONY: build
+.PHONY: default build build-src build-man

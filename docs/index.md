@@ -40,9 +40,6 @@ These are the names of the corresponding man entry for all Superfast commands. T
 `superfast-create`(1)
   Creates a new Superfast application at a desired path. This also installs a small working example.
 
-`superfast-init`(1)
-  Creates a new Superfast application out of the current working directory.
-
 `superfast-start`(1)
   Launches a local development server out of the current working directory. This is the default command used when no command is provided.
 
@@ -54,6 +51,3 @@ These are the names of the corresponding man entry for all Superfast commands. T
 
 `superfast-clear`(1)
   Deletes cached build files created with `superfast-compile`(1).
-
-`superfast-destroy`(1)
-  Deletes all Superfast metadata associated with the current application.

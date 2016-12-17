@@ -4,7 +4,8 @@
   "scripts": {
     "lint": "eslint packages/",
     "test": "make test",
-    "build": "make clean && make"
+    "build": "make clean && make",
+    "prepare": "npm run build"
   },
   "devDependencies": {
     "babel-cli": "^6.18.0",

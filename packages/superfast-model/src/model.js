@@ -1,6 +1,7 @@
 import {check,isValid} from "./utils/check.js";
 import CouchDB from "./couchdb";
 import {splitPathname} from "./utils/url";
+import Context from "./context";
 
 export default class Model {
   constructor(conf={}) {
@@ -16,27 +17,27 @@ export default class Model {
     const {database} = this.conf;
 
     this.api = api;
-    let db;
+    let couch;
 
     if (database && typeof database === "string") {
-      db = this.api.couchdbs.findById(database);
+      couch = this.api.couchdbs.findById(database);
     } else if (database instanceof CouchDB) {
-      db = database;
+      couch = database;
     } else {
-      db = this.api.couchdbs.meta;
+      couch = this.api.couchdbs.meta;
     }
 
-    this.couchdb = db;
-    this.pouchdb = db.createPouchDB(this.name);
+    this.couch = couch;
+    this.db = couch.createPouchDB(this.name);
 
-    db.setup(async () => {
+    couch.setup(async () => {
       try {
-        await db.request("PUT", this.name);
+        await couch.request("PUT", this.name);
       } catch(e) {
         if (e.status !== 412) throw e;
       }
 
-      if (this.actions.setup) await this.actions.setup(this.pouchdb);
+      await this.action("setup");
     });
   }
 
@@ -52,41 +53,62 @@ export default class Model {
 
     if (type == null) return next();
 
+    const {params,user} = req;
+    const ctx = {id,params,user};
+
     switch (type) {
       case "query":
-        res.send(await this.query(req.params));
+        res.send(await this.query(ctx));
         break;
       default:
         return next();
     }
   }
 
-  validate(type, id, params) {
-    if (this.actions.validate && !this.actions.validate(type, id, params)) {
-      throw new Error("Invalid request");
-    }
-  }
-
-  async query(params) {
-    let out;
-
-    this.validate("query", null, params);
-
-    if (this.actions.query) {
-      const rows = await this.actions.query.call(this, this.pouchdb, params);
-      if (Array.isArray(rows)) out = { rows };
-      else if (rows != null && Array.isArray(rows.rows)) out = rows;
-      else out = { rows: [] };
-    } else {
-      const {total_rows,rows} = await this.pouchdb.allDocs({
+  static actions = {
+    async query() {
+      const {total_rows,rows} = await this.db.allDocs({
         include_docs: true
       });
 
-      out = {
+      return {
         rows: rows.map(r => r.doc),
         total_rows
       };
     }
+  };
+
+  async context(data) {
+    return new Context(this, data);
+  }
+
+  async action(name, ctx, ...args) {
+    if (!(ctx instanceof Context)) ctx = this.context(ctx);
+
+    let fn;
+    if (this.actions[name]) fn = this.actions[name];
+    else if (Model.actions[name]) fn = Model.actions[name];
+    
+    if (fn) return await fn.call(this, ctx, ...args);
+  }
+
+  async validate(ctx, type) {
+    if (!(ctx instanceof Context)) ctx = this.context(ctx);
+    if (!(await this.action("validate", ctx, type))) {
+      throw new Error(`Invalid ${type} request`);
+    }
+
+    return ctx;
+  }
+
+  async query(ctx) {
+    ctx = await this.validate(ctx, "query");
+    const rows = await this.action("query", ctx);
+    
+    let out;
+    if (Array.isArray(rows)) out = { rows };
+    else if (rows != null && Array.isArray(rows.rows)) out = rows;
+    else out = { rows: [] };
 
     if (out.total_rows == null) {
       out.total_rows = out.rows.length;

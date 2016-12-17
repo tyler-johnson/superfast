@@ -57,3 +57,11 @@ export function check(value, validate, message) {
 
   return value;
 }
+
+export function defaults(value, validate, def) {
+  if (!isValid(value, validate)) {
+    return def;
+  }
+
+  return value;
+}

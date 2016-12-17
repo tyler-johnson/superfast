@@ -16,6 +16,10 @@ test("basics", async (t) => {
       sec.admins.roles.add("_admin");
       sec.members.roles.add("_admin");
       await sec.save();
+    },
+    validate(type) {
+      console.log(type);
+      return true;
     }
   });
 

@@ -5,11 +5,10 @@ import {splitPathname} from "./utils/url";
 export default class Model {
   constructor(conf={}) {
     this.name = check(conf.name, ["string","truthy"], "Expecting non-empty string for model name.");
-    this.setup = check(conf.setup, { $or: ["function","empty"] }, "Expecting function for setup.");
-    this.retrieve = {};
-    if (isValid(conf.query, "function")) this.retrieve.query = conf.query;
-    if (isValid(conf.get, "function")) this.retrieve.get = conf.get;
-    this.normalize = check(conf.normalize, { $or: ["function","empty"] }, "Expecting function for normalize.");
+    this.actions = ["setup","query","get","normalize","validate"].reduce((m, n) => {
+      if (isValid(conf[n], "function")) m[n] = conf[n];
+      return m;
+    }, {});
     this.conf = conf;
   }
 
@@ -37,7 +36,7 @@ export default class Model {
         if (e.status !== 412) throw e;
       }
 
-      if (this.setup) await this.setup(this.pouchdb);
+      if (this.actions.setup) await this.actions.setup(this.pouchdb);
     });
   }
 
@@ -62,12 +61,19 @@ export default class Model {
     }
   }
 
-  async query(params, user) {
+  validate(type, id, params) {
+    if (this.actions.validate && !this.actions.validate(type, id, params)) {
+      throw new Error("Invalid request");
+    }
+  }
+
+  async query(params) {
     let out;
 
-    if (this.retrieve.query) {
-      const rows = await this.retrieve.query(params, user);
+    this.validate("query", null, params);
 
+    if (this.actions.query) {
+      const rows = await this.actions.query.call(this, this.pouchdb, params);
       if (Array.isArray(rows)) out = { rows };
       else if (rows != null && Array.isArray(rows.rows)) out = rows;
       else out = { rows: [] };

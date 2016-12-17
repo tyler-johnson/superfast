@@ -1,60 +1,49 @@
+NAME = superfast
 BIN = ./node_modules/.bin
-LIB = $(wildcard lib/* lib/outputs/* lib/transforms/* lib/utils/*)
-CLI = $(wildcard lib/cli.js lib/commands/* lib/utils/*)
-OUT = index.js cli.js
-DOCS = $(wildcard docs/*.md)
-DOCSNOINDEX = $(filter-out docs/index.md, $(DOCS))
-MAN = $(DOCSNOINDEX:docs/%.md=man/superfast-%.1)
+PKGS = $(wildcard packages/*)
+PKGNAMES = $(subst packages/,,$(PKGS))
+TESTS = $(wildcard packages/*/test/index.js)
 
-define ROLLUP
-require("rollup").rollup({
-	entry: "$<",
-	plugins: [
-		require("rollup-plugin-babel")({
-			exclude: 'node_modules/**'
-		})
-	]
-}).then(function(bundle) {
-	var result = bundle.generate({
-		format: "cjs"
-	});
-	process.stdout.write(result.code);
-}).catch(function(e) {
-	process.nextTick(function() {
-		throw e;
-	});
-});
+build: bootstrap $(PKGNAMES) # cli.js packages/$(NAME)/README.md
+
+bootstrap:
+	$(BIN)/lerna bootstrap
+
+test: build
+	@ for t in $(TESTS) ; do \
+		echo "=>" $$t ; \
+		$(BIN)/babel-node $$t || exit 1 ; \
+	done
+
+# cli.js: packages/$(NAME)/lib/cli.js
+# 	rm -f $@
+# 	ln -s $< $@
+#
+# packages/$(NAME)/README.md: README.md
+# 	cp $< $@
+
+define GEN_BABEL
+$1: packages/$1
+
+packages/$1: $(subst /src/,/lib/,$2)
+
+packages/$1/lib/cli.js: packages/$1/src/cli.js
+	mkdir -p `dirname $$@`
+	echo "#!/usr/bin/env node" > $$@
+	$(BIN)/babel $$< >> $$@
+	chmod +x $$@
+
+packages/$1/lib/%.js: packages/$1/src/%.js
+	mkdir -p `dirname $$@`
+	$(BIN)/babel $$< > $$@
+
+test-$1: packages/$1/test/index.js build
+	$(BIN)/babel-node $$<
 endef
-export ROLLUP
 
-default: build-src
-build: build-src build-man
-
-build-src: $(OUT)
-
-cli.js: lib/cli.js $(CLI)
-	# $< -> $@
-	@echo "#!/usr/bin/env node\n" > $@
-	@node -e "$$ROLLUP" >> $@
-
-index.js: lib/index.js $(LIB)
-	# $< -> $@
-	@node -e "$$ROLLUP" > $@
-
-build-man: $(MAN) man/superfast.1
-
-man:
-	@mkdir -p man
-
-man/superfast.1: docs/index.md man/
-	# $< -> $@
-	@md2man-roff $< > $@
-
-man/superfast-%.1: docs/%.md man/
-	# $< -> $@
-	@md2man-roff $< > $@
+$(foreach pkg,$(PKGNAMES), \
+	$(eval $(call GEN_BABEL,$(pkg),$(wildcard packages/$(pkg)/src/*.js packages/$(pkg)/src/*/*.js))))
 
 clean:
-	rm -rf $(OUT) man/
-
-.PHONY: default build build-src build-man
+	rm -rf packages/$(NAME)/README.md cli.js $(wildcard packages/*/lib)
+	$(BIN)/lerna clean --yes

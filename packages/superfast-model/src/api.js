@@ -14,16 +14,13 @@ export default class API {
     this._setupRouter();
   }
 
-  model(model) {
-    if (typeof model === "string") {
-      return this.models[model];
+  model(conf) {
+    if (typeof conf === "string") {
+      return this.models[conf];
     }
 
-    if (typeof model == "object" && model != null) {
-      if (!(model instanceof Model)) {
-        model = new Model(model);
-      }
-
+    if (typeof conf == "object" && conf != null) {
+      const model = new Model(conf);
       this.models[model.name] = model;
       model.init(this);
       return model;

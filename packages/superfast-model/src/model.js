@@ -1,32 +1,72 @@
 import {check,isValid} from "./utils/check.js";
 import CouchDB from "./couchdb";
 import {splitPathname} from "./utils/url";
-import Context from "./context";
+import {compile} from "kontur";
+import Ajv from "ajv";
 
 export default class Model {
+  static actions = {
+    query: {
+      async handle(action, opts={}) {
+        const {view,include_docs,descending,key,keys} = action;
+        const {limit,skip} = opts;
+
+        const qopts = {
+          include_docs: !view || include_docs,
+          descending, limit, skip,
+          key: typeof key === "function" ? key(opts) : void 0,
+          keys: typeof keys === "function" ? keys(opts) : void 0
+        };
+
+        const {total_rows,rows} = await (view ? this.db.query(view, qopts) : this.db.allDocs(qopts));
+
+        return {
+          total_rows,
+          rows: rows.map(r => !view || include_docs ? r.doc : r.value)
+        };
+      }
+    }
+  };
+
   constructor(conf={}) {
-    this.name = check(conf.name, ["string","truthy"], "Expecting non-empty string for model name.");
-    this.actions = ["setup","query","get","normalize","validate"].reduce((m, n) => {
-      if (isValid(conf[n], "function")) m[n] = conf[n];
-      return m;
-    }, {});
     this.conf = conf;
+    this.name = check(conf.name, ["string","truthy"], "Expecting non-empty string for model name.");
+    
+    if (conf.actions) {
+      check(conf.actions, "object", "Expecting object or null for actions.");
+      this.registerAction(conf.actions);
+    }
+
+    if (conf.schema) {
+      const ajv = new Ajv({
+        useDefaults: true,
+        removeAdditional: "all"
+      });
+
+      this.schema = ajv.compile(compile(conf.schema));
+    }
+
+    if (isValid(conf.setup, "function")) this._setup = conf.setup;
+    if (isValid(conf.validate, "function")) this._validate = conf.validate;
+    if (isValid(conf.normalize, "function")) this._normalize = conf.normalize;
+    if (isValid(conf.transform, "function")) this._transform = conf.transform;
   }
 
   init(api) {
     const {database} = this.conf;
-
-    this.api = api;
     let couch;
 
     if (database && typeof database === "string") {
-      couch = this.api.couchdbs.findById(database);
+      couch = api.couchdbs.findById(database);
     } else if (database instanceof CouchDB) {
       couch = database;
-    } else {
-      couch = this.api.couchdbs.meta;
+    }
+    
+    if (couch == null) {
+      couch = api.couchdbs.meta;
     }
 
+    this.api = api;
     this.couch = couch;
     this.db = couch.createPouchDB(this.name);
 
@@ -37,12 +77,12 @@ export default class Model {
         if (e.status !== 412) throw e;
       }
 
-      await this.action("setup");
+      await this._setup(this.db);
     });
   }
 
-  handle = async (req, res, next) => {
-    const segments = splitPathname(req.url);
+  async handle(req, res, next) {
+    const segments = splitPathname(req.path);
     if (segments[0] !== this.name || segments.length > 2) return next();
 
     const id = segments[1];
@@ -53,58 +93,75 @@ export default class Model {
 
     if (type == null) return next();
 
-    const {params,user} = req;
-    const ctx = {id,params,user};
+    const {query,user} = req;
 
     switch (type) {
       case "query":
-        res.send(await this.query(ctx));
+        res.send(await this.query({ ...query, user }));
         break;
       default:
         return next();
     }
   }
 
-  static actions = {
-    async query() {
-      const {total_rows,rows} = await this.db.allDocs({
-        include_docs: true
-      });
+  actions = {};
 
-      return {
-        rows: rows.map(r => r.doc),
-        total_rows
-      };
-    }
-  };
-
-  async context(data) {
-    return new Context(this, data);
-  }
-
-  async action(name, ctx, ...args) {
-    if (!(ctx instanceof Context)) ctx = this.context(ctx);
-
-    let fn;
-    if (this.actions[name]) fn = this.actions[name];
-    else if (Model.actions[name]) fn = Model.actions[name];
-    
-    if (fn) return await fn.call(this, ctx, ...args);
-  }
-
-  async validate(ctx, type) {
-    if (!(ctx instanceof Context)) ctx = this.context(ctx);
-    if (!(await this.action("validate", ctx, type))) {
-      throw new Error(`Invalid ${type} request`);
+  registerAction(name, fn) {
+    if (name && typeof name === "object") {
+      Object.keys(name).forEach(n => this.registerAction(n, name[n]));
+      return this;
     }
 
-    return ctx;
+    check(name, ["string","truthy"], "Expecting non-empty string for action name.");
+    
+    if (typeof fn === "function") fn = { handle: fn };
+    check(fn, ["object","truthy"], "Expecting an object for action.");
+
+    this.actions[name] = fn;
   }
 
-  async query(ctx) {
-    ctx = await this.validate(ctx, "query");
-    const rows = await this.action("query", ctx);
+  getAction(name) {
+    return {
+      ...Model.actions[name],
+      ...this.actions[name],
+      name
+    };
+  }
+
+  handleAction(action, data, ...args) {
+    if (typeof action === "string") action = this.getAction(action);
+    const hasData = typeof data !== "undefined";
     
+    if ((action.validate && !action.validate.apply(this, args)) ||
+      (this._validate && !this._validate(action.name, ...args))) {
+      throw new Error(`Invalid ${action.name} action`);
+    }
+
+    if (hasData) {
+      if (this.schema && !this.schema(data)) {
+        throw this.schema.errors[0];
+      }
+
+      if (action.normalize) data = action.normalize.call(this, data, ...args); 
+      if (this._normalize) data = this._normalize.call(this, data, ...args); 
+    }
+
+    if (action.handle) {
+      return action.handle.apply(this, (hasData ? [data] : []).concat(action, args));
+    }
+  }
+
+  transform(action, doc, opts) {
+    if (typeof action === "string") action = this.getAction(action);
+    if (action.transform) doc = action.transform.call(this, doc, opts);
+    if (this._transform) doc = this._transform.call(this, doc, opts);
+    return doc;
+  }
+
+  async query(opts) {
+    const action = this.getAction("query");
+    const rows = await this.handleAction(action, void 0, opts);
+
     let out;
     if (Array.isArray(rows)) out = { rows };
     else if (rows != null && Array.isArray(rows.rows)) out = rows;
@@ -113,6 +170,8 @@ export default class Model {
     if (out.total_rows == null) {
       out.total_rows = out.rows.length;
     }
+
+    out.rows = out.rows.map((d) => this.transform(action, d, opts));
 
     return out;
   }

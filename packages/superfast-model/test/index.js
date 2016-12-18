@@ -1,6 +1,6 @@
 import tape from "tape";
 import tapePromise from "tape-promise";
-import {API} from "../src/index.js";
+import {API,types as T} from "../src/index.js";
 
 const test = tapePromise(tape);
 
@@ -20,10 +20,23 @@ test("basics", async (t) => {
       sec.members.roles.add("_admin");
       await sec.save();
     },
-    validate(ctx, type) {
-      console.log(type);
-      return false;
-    }
+    schema: {
+      foo: T.str
+    },
+    actions: {
+      query: {
+        view: "find/foo",
+        include_doc: true
+      },
+      create: {
+        validate() {},
+        handle() {},
+        transform() {}
+      }
+    },
+    validate(id, opts) {},
+    normalize(data, id, opts) {},
+    transform(doc, opts) {}
   });
 
   api.listen();

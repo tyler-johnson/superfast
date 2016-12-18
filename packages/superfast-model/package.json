@@ -1,10 +1,12 @@
 {
   "name": "superfast-model",
   "dependencies": {
+    "ajv": "^5.0.0-beta.1",
     "cors": "^2.8.1",
     "couchdb-auth-proxy": "^1.1.2",
     "debug": "^2.4.4",
     "express": "^4.14.0",
+    "kontur": "^0.2.0",
     "lodash": "^4.17.2",
     "pouchdb": "^6.1.0",
     "pouchdb-access": "^2.2.0",

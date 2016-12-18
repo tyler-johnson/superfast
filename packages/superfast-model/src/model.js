@@ -1,30 +1,33 @@
-import {check,isValid} from "./utils/check.js";
+import {check} from "./utils/check.js";
 import CouchDB from "./couchdb";
 import {splitPathname} from "./utils/url";
 import {compile} from "kontur";
 import Ajv from "ajv";
 
 export default class Model {
+  static configMethods = ["setup","validate","normalize","transform"];
+
   static actions = {
-    query: {
-      async handle(action, opts={}) {
-        const {view,include_docs,descending,key,keys} = action;
-        const {limit,skip} = opts;
+    async query(conf={}, opts={}) {
+      const {view,include_docs,descending,key,keys} = conf;
+      const {limit,skip} = opts;
 
-        const qopts = {
-          include_docs: !view || include_docs,
-          descending, limit, skip,
-          key: typeof key === "function" ? key(opts) : void 0,
-          keys: typeof keys === "function" ? keys(opts) : void 0
-        };
+      const qopts = {
+        include_docs: !view || include_docs,
+        descending, limit, skip,
+        key: typeof key === "function" ? key(opts) : void 0,
+        keys: typeof keys === "function" ? keys(opts) : void 0
+      };
 
-        const {total_rows,rows} = await (view ? this.db.query(view, qopts) : this.db.allDocs(qopts));
+      const {total_rows,rows} = await (view ? this.db.query(view, qopts) : this.db.allDocs(qopts));
 
-        return {
-          total_rows,
-          rows: rows.map(r => !view || include_docs ? r.doc : r.value)
-        };
-      }
+      return {
+        total_rows,
+        rows: rows.map(r => !view || include_docs ? r.doc : r.value)
+      };
+    },
+    async get(conf, id, opts={}) {
+      return await this.db.get(id, opts);
     }
   };
 
@@ -46,10 +49,9 @@ export default class Model {
       this.schema = ajv.compile(compile(conf.schema));
     }
 
-    if (isValid(conf.setup, "function")) this._setup = conf.setup;
-    if (isValid(conf.validate, "function")) this._validate = conf.validate;
-    if (isValid(conf.normalize, "function")) this._normalize = conf.normalize;
-    if (isValid(conf.transform, "function")) this._transform = conf.transform;
+    Model.configMethods.forEach(m => {
+      if (typeof conf[m] === "function") this["_" + m] = conf[m];
+    });
   }
 
   init(api) {
@@ -86,7 +88,7 @@ export default class Model {
     if (segments[0] !== this.name || segments.length > 2) return next();
 
     const id = segments[1];
-    const type = req.method === "GET" ? id ? "read" : "query" :
+    const type = req.method === "GET" ? id ? "get" : "query" :
       req.method === "POST" && !id ? "create" :
       req.method === "PUT" && id ? "update" :
       req.method === "DELETE" ? "delete" : null;
@@ -98,6 +100,9 @@ export default class Model {
     switch (type) {
       case "query":
         res.send(await this.query({ ...query, user }));
+        break;
+      case "get":
+        res.send(await this.get(id, { ...query, user }));
         break;
       default:
         return next();
@@ -121,58 +126,75 @@ export default class Model {
   }
 
   getAction(name) {
+    let def = Model.actions[name];
+    if (typeof def === "function") def = { handle: def };
+
     return {
-      ...Model.actions[name],
+      ...def,
       ...this.actions[name],
       name
     };
   }
 
-  handleAction(action, data, ...args) {
+  async handleAction(action, ctx, ...args) {
     if (typeof action === "string") action = this.getAction(action);
-    const hasData = typeof data !== "undefined";
+    let {write=false,data={},transform=true} = (ctx || {});
+    let res;
     
-    if ((action.validate && !action.validate.apply(this, args)) ||
-      (this._validate && !this._validate(action.name, ...args))) {
+    if ((action.validate && !(await action.validate.apply(this, args))) ||
+      (this._validate && !(await this._validate(action.name, ...args)))) {
       throw new Error(`Invalid ${action.name} action`);
     }
 
-    if (hasData) {
+    if (write) {
       if (this.schema && !this.schema(data)) {
         throw this.schema.errors[0];
       }
 
-      if (action.normalize) data = action.normalize.call(this, data, ...args); 
-      if (this._normalize) data = this._normalize.call(this, data, ...args); 
+      if (action.normalize) data = await action.normalize.call(this, data, ...args); 
+      if (this._normalize) data = await this._normalize.call(this, data, ...args); 
     }
 
     if (action.handle) {
-      return action.handle.apply(this, (hasData ? [data] : []).concat(action, args));
+      res = await action.handle.apply(this, (write ? [data] : []).concat(args));
     }
+
+    if (transform) {
+      res = await this.transformAction(action, res, ...args);
+    }
+
+    return res;
   }
 
-  transform(action, doc, opts) {
+  async transformAction(action, doc, ...args) {
     if (typeof action === "string") action = this.getAction(action);
-    if (action.transform) doc = action.transform.call(this, doc, opts);
-    if (this._transform) doc = this._transform.call(this, doc, opts);
+    if (action.transform) doc = await action.transform.call(this, doc, ...args);
+    if (this._transform) doc = await this._transform.call(this, doc, ...args);
     return doc;
   }
 
   async query(opts) {
     const action = this.getAction("query");
-    const rows = await this.handleAction(action, void 0, opts);
+    const conf = this.conf.query;
 
-    let out;
-    if (Array.isArray(rows)) out = { rows };
-    else if (rows != null && Array.isArray(rows.rows)) out = rows;
-    else out = { rows: [] };
+    let res = await this.handleAction(action, { transform: false }, conf, opts);
+    if (Array.isArray(res)) res = { rows: res };
+    else if (res == null || !Array.isArray(res.rows)) res = { rows: [] };
 
-    if (out.total_rows == null) {
-      out.total_rows = out.rows.length;
+    const rowscopy = new Array(res.rows.length);
+    for (let i = 0; i < res.rows.length; i++) {
+      rowscopy[i] = await this.transformAction(action, res.rows[i], conf, opts);
     }
 
-    out.rows = out.rows.map((d) => this.transform(action, d, opts));
+    return {
+      total_rows: res.total_rows != null ?
+        res.total_rows :
+        res.rows.length,
+      rows: rowscopy
+    };
+  }
 
-    return out;
+  async get(id, opts) {
+    return await this.handleAction("get", null, this.conf.query, id, opts);
   }
 }

@@ -4,7 +4,7 @@ PKGS = $(wildcard packages/*)
 PKGNAMES = $(subst packages/,,$(PKGS))
 TESTS = $(wildcard packages/*/test/index.js)
 
-build: bootstrap $(PKGNAMES) # cli.js packages/$(NAME)/README.md
+build: bootstrap $(PKGNAMES)
 
 bootstrap:
 	$(BIN)/lerna bootstrap
@@ -14,13 +14,6 @@ test: build
 		echo "=>" $$t ; \
 		$(BIN)/babel-node $$t || exit 1 ; \
 	done
-
-# cli.js: packages/$(NAME)/lib/cli.js
-# 	rm -f $@
-# 	ln -s $< $@
-#
-# packages/$(NAME)/README.md: README.md
-# 	cp $< $@
 
 define GEN_BABEL
 $1: packages/$1
@@ -45,5 +38,5 @@ $(foreach pkg,$(PKGNAMES), \
 	$(eval $(call GEN_BABEL,$(pkg),$(wildcard packages/$(pkg)/src/*.js packages/$(pkg)/src/*/*.js))))
 
 clean:
-	rm -rf packages/$(NAME)/README.md cli.js $(wildcard packages/*/lib)
+	rm -rf cli.js $(wildcard packages/*/lib)
 	$(BIN)/lerna clean --yes

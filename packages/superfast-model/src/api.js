@@ -1,6 +1,11 @@
 import Model from "./model";
 import CouchDBManager from "./manager";
-import express from "express";
+import express, {Router} from "express";
+import bodyParser from "body-parser";
+
+const jsonParser = bodyParser.json();
+const urlencodedParser = bodyParser.urlencoded({ extended: true });
+const parseMethods = ["POST","PUT","PATCH","DELETE"];
 
 export default class API {
   constructor(conf={}) {
@@ -42,6 +47,7 @@ export default class API {
     });
 
     app.use(this.couchdbs.router());
+    app.use(this._requestParser());
     app.use(this._modelRouter);
   }
 
@@ -61,6 +67,21 @@ export default class API {
     };
 
     next();
+  }
+
+  _requestParser() {
+    const parser = new Router();
+    parser.use(jsonParser);
+    parser.use(urlencodedParser);
+
+    return async function(req, res, next) {
+      if (parseMethods.indexOf(req.method) >= 0) {
+        await parser(req, res, next);
+      } else {
+        req.body = {};
+        next();
+      }
+    };
   }
 
   listen(port, cb) {

@@ -1,14 +1,13 @@
 import Model from "./model";
 import CouchDBManager from "./manager";
-import express, {Router} from "express";
-import bodyParser from "body-parser";
+import express from "express";
+import {router as handleErrors} from "./error";
+import * as routerUtils from "./utils/router";
+import EventEmitter from "./eventemitter";
 
-const jsonParser = bodyParser.json();
-const urlencodedParser = bodyParser.urlencoded({ extended: true });
-const parseMethods = ["POST","PUT","PATCH","DELETE"];
-
-export default class API {
+export default class API extends EventEmitter {
   constructor(conf={}) {
+    super();
     this.conf = {
       port: 3000,
       ...conf
@@ -16,16 +15,18 @@ export default class API {
 
     this.models = {};
     this.couchdbs = new CouchDBManager(this);
-    this._setupRouter();
   }
 
-  model(conf) {
-    if (typeof conf === "string") {
-      return this.models[conf];
+  model(model) {
+    if (typeof model === "string") {
+      return this.models[model];
     }
 
-    if (typeof conf == "object" && conf != null) {
-      const model = new Model(conf);
+    if (typeof model === "object" && model != null) {
+      if (!(model instanceof Model)) {
+        model = new Model(model);
+      }
+
       this.models[model.name] = model;
       model.init(this);
       return model;
@@ -38,8 +39,8 @@ export default class API {
     return this.couchdbs.load();
   }
 
-  _setupRouter() {
-    const app = this.router = express();
+  createRouter() {
+    const app = express();
 
     const load = this.load();
     app.use((req, res, next) => {
@@ -47,8 +48,11 @@ export default class API {
     });
 
     app.use(this.couchdbs.router());
-    app.use(this._requestParser());
+    app.use(routerUtils.requestParser());
     app.use(this._modelRouter);
+    app.use(handleErrors);
+
+    return app;
   }
 
   _modelRouter = (req, res, done) => {
@@ -60,28 +64,13 @@ export default class API {
       const model = this.models[models.shift()];
 
       try {
-        await model.handle(req, res, next);
+        await model.handleRequest(req, res, next);
       } catch(e) {
         return done(e);
       }
     };
 
     next();
-  }
-
-  _requestParser() {
-    const parser = new Router();
-    parser.use(jsonParser);
-    parser.use(urlencodedParser);
-
-    return async function(req, res, next) {
-      if (parseMethods.indexOf(req.method) >= 0) {
-        await parser(req, res, next);
-      } else {
-        req.body = {};
-        next();
-      }
-    };
   }
 
   listen(port, cb) {
@@ -93,6 +82,7 @@ export default class API {
       port = this.conf.port;
     }
 
-    return this.router.listen(port, cb);
+    const app = this.createRouter();
+    return app.listen(port, cb);
   }
 }

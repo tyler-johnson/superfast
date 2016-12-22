@@ -6,7 +6,8 @@ import Ajv from "ajv";
 import {ValidationError,MissingError,ExistsError} from "./error";
 import EventEmitter from "./eventemitter";
 
-class ActionEmitter extends EventEmitter {
+// Model Action Lifecycle Event Runner
+class MALER {
   static defaultActions = {
     async query(e, opts={}) {
       const {view,include_docs,descending,key,keys} = e.query || {};
@@ -20,7 +21,7 @@ class ActionEmitter extends EventEmitter {
         keys: typeof keys === "function" ? keys(opts) : void 0
       };
 
-      let {total_rows,rows} = await (view ? e.db.query(view, qopts) : e.db.allDocs(qopts));
+      let {total_rows,rows} = await (view ? e.model.db.query(view, qopts) : e.model.db.allDocs(qopts));
       rows = rows.map(r => getdoc ? r.doc : r.value);
       if (getdoc) rows = rows.filter(r => r._id && r._id.substr(0,8) !== "_design/");
 
@@ -38,17 +39,17 @@ class ActionEmitter extends EventEmitter {
         keys: typeof keys === "function" ? keys(id, opts) : void 0
       };
 
-      const {rows} = await (view ? e.db.query(view, qopts) : e.db.allDocs(qopts));
+      const {rows} = await (view ? e.model.db.query(view, qopts) : e.model.db.allDocs(qopts));
 
       return rows.length ? rows[0][getdoc ? "doc" : "value"] : null;
     },
     async create(e, doc, opts={}) {
       if (!doc._id) {
-        const {id,rev} = await e.db.post(doc, opts);
+        const {id,rev} = await e.model.db.post(doc, opts);
         return { ...doc, _id: id, _rev: rev };
       }
 
-      const {rev} = await e.db.upsert(doc._id, (ex) => {
+      const {rev} = await e.model.db.upsert(doc._id, (ex) => {
         if (ex && ex._rev) {
           throw new ExistsError(`${e.model.name} already exists with provided id.`);
         }
@@ -59,7 +60,7 @@ class ActionEmitter extends EventEmitter {
       return { ...doc, _rev: rev };
     },
     async update(e, doc, id) {
-      const {rev} = await e.db.upsert(id, (ex) => {
+      const {rev} = await e.model.db.upsert(id, (ex) => {
         if (!ex || !ex._rev) {
           throw new MissingError(`No ${e.model.name} exists with provided id.`);
         }
@@ -70,7 +71,7 @@ class ActionEmitter extends EventEmitter {
       return { ...doc, _id: id, _rev: rev };
     },
     async delete(e, id) {
-      const {rev} = await e.db.upsert(id, (ex) => {
+      const {rev} = await e.model.db.upsert(id, (ex) => {
         if (!ex || !ex._rev) {
           throw new MissingError(`No ${e.model.name} exists with provided id.`);
         }
@@ -82,9 +83,14 @@ class ActionEmitter extends EventEmitter {
     }
   };
 
-  async validate(evtData, ...args) {
-    const event = this.createEvent("validate", evtData);
-    const valid = await this.reduceEvent(event, async function(m, fn) {
+  constructor(action, evtData) {
+    this.action = action;
+    this.evtData = evtData;
+  }
+
+  async validate(...args) {
+    const event = this.action.createEvent("validate", this.evtData);
+    const valid = await this.action.reduceEvent(event, async function(m, fn) {
       if (!(await fn.call(this, event, ...args))) {
         event.stopImmediatePropagation();
         return false;
@@ -98,9 +104,9 @@ class ActionEmitter extends EventEmitter {
     }
   }
 
-  async normalize(evtData, data, ...args) {
-    const event = this.createEvent("normalize", evtData);
-    const res = await this.reduceEvent(event, async function(m, fn) {
+  async normalize(data, ...args) {
+    const event = this.action.createEvent("normalize", this.evtData);
+    const res = await this.action.reduceEvent(event, async function(m, fn) {
       return fn.call(this, event, m, ...args);
     }, data);
 
@@ -112,26 +118,26 @@ class ActionEmitter extends EventEmitter {
     return res;
   }
 
-  async handle(evtData, ...args) {
-    const event = this.createEvent("handle", {
-      defaultListener: ActionEmitter.defaultActions[evtData.action],
-      ...evtData
+  async handle(...args) {
+    const event = this.action.createEvent("handle", {
+      defaultListener: MALER.defaultActions[this.evtData.action],
+      ...this.evtData
     });
 
-    return await this.reduceEvent(event, async function(m, fn) {
+    return await this.action.reduceEvent(event, async function(m, fn) {
       return fn.call(this, event, ...args);
     });
   }
 
-  async transform(evtData, data, ...args) {
-    const event = this.createEvent("transform", evtData);
-    return await this.reduceEvent(event, async function(m, fn) {
+  async transform(data, ...args) {
+    const event = this.action.createEvent("transform", this.evtData);
+    return await this.action.reduceEvent(event, async function(m, fn) {
       return fn.call(this, event, m, ...args);
     }, data);
   }
 }
 
-export default class Model extends ActionEmitter {
+export default class Model extends EventEmitter {
   static actionEvents = ["validate","normalize","transform","response"];
 
   constructor(conf={}) {
@@ -238,7 +244,7 @@ export default class Model extends ActionEmitter {
 
   actions = {};
 
-  registerAction(name, opts) {
+  registerAction(name, events) {
     if (name && typeof name === "object") {
       Object.keys(name).forEach(n => this.registerAction(n, name[n]));
       return this;
@@ -246,17 +252,15 @@ export default class Model extends ActionEmitter {
 
     check(name, ["string","truthy"], "Expecting non-empty string for action name.");
     
-    if (typeof opts === "function") opts = { handle: opts };
-    check(opts, ["object","truthy"], "Expecting an object for action.");
+    if (typeof events === "function") events = { handle: events };
+    check(events, ["object","truthy"], "Expecting an object or function for action.");
 
-    const action = new ActionEmitter(this);
+    const action = new EventEmitter(this);
     action.name = name;
 
-    Object.keys(opts).forEach(key => {
-      if (Model.actionEvents.indexOf(key) >= 0) {
-        action.addEventListener(key, opts[key]);
-      } else if (!(key in EventEmitter.prototype)) {
-        action[key] = opts[key];
+    Object.keys(events).forEach(key => {
+      if (typeof events[key] === "function") {
+        action.addEventListener(key, events[key]);
       }
     });
 
@@ -265,72 +269,32 @@ export default class Model extends ActionEmitter {
     return this;
   }
 
-  getAction(name, mixin) {
+  getActionHandler(name, mixin) {
     const action = this.actions[name] || this;
     const evtData = {
       action: name,
-      db: this.db,
       model: this,
       ...mixin
     };
 
-    return [action,evtData];
+    return new MALER(action, evtData);
   }
 
-  // async handleAction(action, ctx, ...args) {
-  //   if (typeof action === "string") action = this.getAction(action);
-  //   let {data,transform=true} = (ctx || {});
-  //   const write = typeof data !== "undefined";
-  //   let res;
-    
-  //   if ((action.validate && !(await action.validate.apply(this, args))) ||
-  //     (this._validate && !(await this._validate(action.name, ...args)))) {
-  //     throw new ValidationError();
-  //   }
-
-  //   if (write) {
-  //     if (action.normalize) data = await action.normalize.call(this, data, ...args); 
-  //     if (this._normalize) data = await this._normalize.call(this, data, ...args); 
-
-  //     if (this.schema && !this.schema(data)) {
-  //       const err = this.schema.errors[0];
-  //       throw new ValidationError(err.message);
-  //     }
-  //   }
-
-  //   if (action.handle) {
-  //     res = await action.handle.apply(this, (write ? [data] : []).concat(args));
-  //   }
-
-  //   if (transform) {
-  //     res = await this.transformAction(action, res, ...args);
-  //   }
-
-  //   return res;
-  // }
-
-  // async transformAction(action, doc, ...args) {
-  //   if (typeof action === "string") action = this.getAction(action);
-  //   if (action.transform) doc = await action.transform.call(this, doc, ...args);
-  //   if (this._transform) doc = await this._transform.call(this, doc, ...args);
-  //   return doc;
-  // }
-
   async query(opts, user) {
-    const [action,evtData] = this.getAction("query", {
+    const handler = this.getActionHandler("query", {
       user,
       query: this.conf.query
     });
     
-    await action.validate(evtData, null, opts);
+    await handler.validate(null, opts);
 
-    let res = await action.handle(evtData, opts);
+    let res = await handler.handle(opts);
     if (Array.isArray(res)) res = { rows: res };
     else if (res == null || !Array.isArray(res.rows)) res = { rows: [] };
 
     const rowscopy = new Array(res.rows.length);
     for (let i = 0; i < res.rows.length; i++) {
-      rowscopy[i] = await action.transform(evtData, res.rows[i], null, opts);
+      rowscopy[i] = await handler.transform(res.rows[i], null, opts);
     }
 
     return {
@@ -340,36 +304,36 @@ export default class Model extends ActionEmitter {
   }
 
   async get(id, opts, user) {
-    const [action,evtData] = this.getAction("get", {
+    const handler = this.getActionHandler("get", {
       user,
       query: this.conf.query
     });
 
-    await action.validate(evtData, id, opts);
-    let res = await action.handle(evtData, id, opts);
-    return await action.transform(evtData, res, id, opts);
+    await handler.validate(id, opts);
+    let res = await handler.handle(id, opts);
+    return await handler.transform(res, id, opts);
   }
 
   async create(doc, opts, user) {
-    const [action,evtData] = this.getAction("create", { user });
-    await action.validate(evtData, null, opts);
-    doc = await action.normalize(evtData, doc, null, opts);
-    let res = await action.handle(evtData, doc, opts);
-    return await action.transform(evtData, res, null, opts);
+    const handler = this.getActionHandler("create", { user });
+    await handler.validate(null, opts);
+    doc = await handler.normalize(doc, null, opts);
+    let res = await handler.handle(doc, opts);
+    return await handler.transform(res, null, opts);
   }
 
   async update(doc, id, opts, user) {
-    const [action,evtData] = this.getAction("update", { user });
-    await action.validate(evtData, id, opts);
-    doc = await action.normalize(evtData, doc, id, opts);
-    let res = await action.handle(evtData, doc, id, opts);
-    return await action.transform(evtData, res, id, opts);
+    const handler = this.getActionHandler("update", { user });
+    await handler.validate(id, opts);
+    doc = await handler.normalize(doc, id, opts);
+    let res = await handler.handle(doc, id, opts);
+    return await handler.transform(res, id, opts);
   }
 
   async delete(id, opts, user) {
-    const [action,evtData] = this.getAction("delete", { user });
-    await action.validate(evtData, id, opts);
-    let res = await action.handle(evtData, id, opts);
-    return await action.transform(evtData, res, id, opts);
+    const handler = this.getActionHandler("delete", { user });
+    await handler.validate(id, opts);
+    let res = await handler.handle(id, opts);
+    return await handler.transform(res, id, opts);
   }
 }

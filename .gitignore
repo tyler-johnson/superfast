@@ -1,7 +1,2 @@
-lib/
-.npmrc
-testrepo/
 node_modules/
-*.log
-/cli.js
-packages/autorelease/README.md
+/index.js

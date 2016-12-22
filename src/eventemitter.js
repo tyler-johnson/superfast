@@ -25,6 +25,10 @@ class Event {
     this.defaultPrevented = true;
     return this;
   }
+
+  static isEvent(e) {
+    return e instanceof Event;
+  }
 }
 
 export default class EventEmitter {
@@ -61,6 +65,12 @@ export default class EventEmitter {
     return new Event(this, name, data);
   }
 
+  listenerCount(event) {
+    check(event, [Event.isEvent,"string"], "Expecting event or event type.");
+    const fns = this._events[typeof event === "string" ? event : event.type];
+    return fns ? fns.length : 0;
+  }
+
   async emitEvent(event, ...args) {
     await this.reduceEvent(event, function(m, fn) {
       fn.call(this, event, ...args);
@@ -68,7 +78,7 @@ export default class EventEmitter {
   }
 
   async reduceEvent(event, fn, memo) {
-    check(event, (v) => v instanceof Event, "Expecting Event to emit.");
+    check(event, Event.isEvent, "Expecting Event to emit.");
     check(fn, "function", "Expecting function to reduce with.");
 
     const fns = this._events[event.type];

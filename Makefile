@@ -1,42 +1,12 @@
-NAME = superfast
 BIN = ./node_modules/.bin
-PKGS = $(wildcard packages/*)
-PKGNAMES = $(subst packages/,,$(PKGS))
-TESTS = $(wildcard packages/*/test/index.js)
+SRC = $(wildcard src/* src/*/*)
 
-build: bootstrap $(PKGNAMES)
+build: index.js
 
-bootstrap:
-	$(BIN)/lerna bootstrap
-
-test: build
-	@ for t in $(TESTS) ; do \
-		echo "=>" $$t ; \
-		$(BIN)/babel-node $$t || exit 1 ; \
-	done
-
-define GEN_BABEL
-$1: packages/$1
-
-packages/$1: $(subst /src/,/lib/,$2)
-
-packages/$1/lib/cli.js: packages/$1/src/cli.js
-	mkdir -p `dirname $$@`
-	echo "#!/usr/bin/env node" > $$@
-	$(BIN)/babel $$< >> $$@
-	chmod +x $$@
-
-packages/$1/lib/%.js: packages/$1/src/%.js
-	mkdir -p `dirname $$@`
-	$(BIN)/babel $$< > $$@
-
-test-$1: packages/$1/test/index.js build
-	$(BIN)/babel-node $$<
-endef
-
-$(foreach pkg,$(PKGNAMES), \
-	$(eval $(call GEN_BABEL,$(pkg),$(wildcard packages/$(pkg)/src/*.js packages/$(pkg)/src/*/*.js))))
+index.js: src/index.js $(SRC)
+	$(BIN)/rollup $< -c > $@
 
 clean:
-	rm -rf cli.js $(wildcard packages/*/lib)
-	$(BIN)/lerna clean --yes
+	rm -f index.js
+
+.PHONY: build clean

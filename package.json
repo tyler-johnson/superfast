@@ -1,5 +1,12 @@
 {
   "name": "superfast",
+  "description": "All-in-One Backend for JavaScript Powered Applications",
+  "author": "Tyler Johnson <tyler@vintyge.com>",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/tyler-johnson/superfast.git"
+	},
+  "main": "index.js",
   "scripts": {
     "lint": "eslint src/",
     "build": "make clean && make",
@@ -34,5 +41,9 @@
     "rollup-plugin-json": "^2.1.0",
     "tape": "^4.6.3",
     "tape-promise": "^2.0.1"
-  }
+  },
+  "license": "MIT",
+  "files": [
+    "index.js"
+  ]
 }

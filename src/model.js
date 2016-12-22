@@ -138,17 +138,19 @@ class MALER {
 }
 
 export default class Model extends EventEmitter {
-  static actionEvents = ["validate","normalize","transform","response"];
-
   constructor(conf={}) {
     super();
     this.conf = conf;
     this.name = check(conf.name, ["string","truthy"], "Expecting non-empty string for model name.");
-    this.setup = check(conf.setup, { $or: ["function","empty"] }, "Expecting function for setup.");
     
     if (conf.actions) {
       check(conf.actions, "object", "Expecting object or null for actions.");
       this.registerAction(conf.actions);
+    }
+
+    if (conf.events) {
+      check(conf.events, "object", "Expecting object or null for events.");
+      this.registerAction(conf.events);
     }
 
     if (conf.schema) {
@@ -159,10 +161,6 @@ export default class Model extends EventEmitter {
 
       this.schema = ajv.compile(compile(conf.schema));
     }
-
-    Model.actionEvents.forEach(evt => {
-      if (conf[evt]) this.addEventListener(evt, conf[evt]);
-    });
   }
 
   init(api) {
@@ -194,7 +192,8 @@ export default class Model extends EventEmitter {
         if (e.status !== 412) throw e;
       }
 
-      await this.setup(this.db);
+      const event = this.createEvent("setup");
+      await this.emitEvent(event, this.db);
     });
   }
 
@@ -236,7 +235,7 @@ export default class Model extends EventEmitter {
         return next();
     }
 
-    const event = this.createEvent("response", { user, model: this });
+    const event = this.createEvent("response", { user });
     res.json(await this.reduceEvent(event, function(m, fn) {
       return fn.call(this, event, m, query);
     }, output));
@@ -260,7 +259,7 @@ export default class Model extends EventEmitter {
 
     Object.keys(events).forEach(key => {
       if (typeof events[key] === "function") {
-        action.addEventListener(key, events[key]);
+        action.addListener(key, events[key]);
       }
     });
 

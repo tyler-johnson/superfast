@@ -37,7 +37,7 @@ export default class EventEmitter {
     this._events = {};
   }
 
-  addEventListener(name, fn) {
+  addListener(name, fn) {
     check(name, ["string","truthy"], "Expecting non-empty string for event name.");
     check(fn, "function", "Expecting function for event listener.");
 
@@ -46,7 +46,7 @@ export default class EventEmitter {
     return this;
   }
 
-  removeEventListener(name, fn) {
+  removeListener(name, fn) {
     check(name, ["string","truthy"], "Expecting non-empty string for event name.");
     check(fn, "function", "Expecting function for event listener.");
 

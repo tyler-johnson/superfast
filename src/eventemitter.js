@@ -1,7 +1,7 @@
 import {check} from "./utils/check";
 import {assign,without} from "lodash";
 
-class Event {
+export class Event {
   constructor(target, type, data) {
     if (data) assign(this, data);
     this.target = target;
@@ -37,32 +37,32 @@ export default class EventEmitter {
     this._events = {};
   }
 
-  addListener(name, fn) {
-    check(name, ["string","truthy"], "Expecting non-empty string for event name.");
+  addListener(type, fn) {
+    check(type, ["string","truthy"], "Expecting non-empty string for event type.");
     check(fn, "function", "Expecting function for event listener.");
 
-    if (this._events[name] == null) this._events[name] = [];
-    this._events[name].push(fn);
+    if (this._events[type] == null) this._events[type] = [];
+    this._events[type].push(fn);
     return this;
   }
 
-  removeListener(name, fn) {
-    check(name, ["string","truthy"], "Expecting non-empty string for event name.");
+  removeListener(type, fn) {
+    check(type, ["string","truthy"], "Expecting non-empty string for event type.");
     check(fn, "function", "Expecting function for event listener.");
 
-    if (this._events[name] != null) {
-      this._events[name] = without(this._events[name], fn);
+    if (this._events[type] != null) {
+      this._events[type] = without(this._events[type], fn);
 
-      if (!this._events[name].length) {
-        delete this._events[name];
+      if (!this._events[type].length) {
+        delete this._events[type];
       }
     }
 
     return this;
   }
 
-  createEvent(name, data) {
-    return new Event(this, name, data);
+  createEvent(type, data) {
+    return new Event(this, type, data);
   }
 
   listenerCount(event) {
@@ -84,14 +84,16 @@ export default class EventEmitter {
     const fns = this._events[event.type];
     if (fns != null && fns.length) {
       for (let i = 0; i < fns.length; i++) {
-        if (event.stopped) return memo;
+        if (event.stopped) break;
         memo = await fn.call(this, memo, fns[i], event);
       }
     }
 
-    if (event.bubbles && this._eventParent) {
+    if (!event.stopped && event.bubbles && this._eventParent) {
       memo = await this._eventParent.reduceEvent(event, fn, memo);
-    } else if (!event.defaultPrevented && event.defaultListener) {
+    }
+    
+    if (!event.defaultPrevented && event.defaultListener) {
       memo = await fn.call(this, memo, event.defaultListener, event);
     }
 

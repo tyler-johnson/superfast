@@ -150,7 +150,7 @@ export default class Model extends EventEmitter {
 
     if (conf.events) {
       check(conf.events, "object", "Expecting object or null for events.");
-      this.registerAction(conf.events);
+      this.addListener(conf.events);
     }
 
     if (conf.schema) {

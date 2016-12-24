@@ -38,6 +38,11 @@ export default class EventEmitter {
   }
 
   addListener(type, fn) {
+    if (type && typeof type === "object") {
+      Object.keys(type).forEach(k => this.addListener(k, type[k]));
+      return this;
+    }
+
     check(type, ["string","truthy"], "Expecting non-empty string for event type.");
     check(fn, "function", "Expecting function for event listener.");
 

@@ -11,6 +11,7 @@ import securityPlugin from "pouchdb-security-helper";
 import {join,contains as urlContains} from "./utils/url";
 import authProxy from "./authproxy";
 import {check} from "./utils/check";
+import proxyAuth from "couch-proxy-auth";
 
 PouchDB.plugin(designPlugin);
 PouchDB.plugin(upsertPlugin);
@@ -196,11 +197,20 @@ export default class CouchDB {
     });
   }
 
-  createPouchDB(name, opts) {
-    return new PouchDB(this.privateUrl(name), {
+  createPouchDB(dbname, opts={}) {
+    let headers;
+
+    if (opts.userCtx) {
+      const {name,roles} = opts.userCtx || {};
+      const {secret} = this._options;
+      headers = proxyAuth(name, roles, secret);
+    }
+
+    return new PouchDB(this.privateUrl(dbname), {
       skipSetup: true,
       auth: this._auth,
       ...opts,
+      headers: { ...opts.headers, ...headers },
       adapter: "http"
     });
   }

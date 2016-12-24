@@ -4,11 +4,11 @@ import {parse} from "url";
 import {find} from "lodash";
 
 export default class CouchDBManager {
-  constructor(api) {
-    const { databases, couchdb } = api.conf;
+  constructor(conf={}) {
+    const { databases, couchdb, version } = conf;
     const hasDatabases = Array.isArray(databases) && databases.length;
 
-    this.api = api;
+    this.version = version;
     this.databases = [];
     this.cores = [];
     this.meta = this._registerCouchDB(couchdb, hasDatabases);
@@ -26,7 +26,7 @@ export default class CouchDBManager {
     const couchdb = new CouchDB(conf, {
       privateOnly,
       authenticate: this.authenticate,
-      version: this.api.conf.version
+      version: this.version
     });
     this.databases.push(couchdb);
     return couchdb;
@@ -34,10 +34,6 @@ export default class CouchDBManager {
 
   load() {
     return Promise.all(this.databases.map(db => db.load()));
-  }
-
-  authenticate = (auth) => {
-    console.log(auth);
   }
 
   router() {

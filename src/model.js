@@ -6,8 +6,7 @@ import Ajv from "ajv";
 import {ValidationError,MissingError,ExistsError} from "./error";
 import EventEmitter from "./eventemitter";
 
-// Model Action Lifecycle Event Runner
-class MALER {
+class ActionHandler {
   static defaultActions = {
     async query(e, opts={}) {
       const {view,include_docs,descending,key,keys} = e.query || {};
@@ -120,7 +119,7 @@ class MALER {
 
   async handle(...args) {
     const event = this.action.createEvent("handle", {
-      defaultListener: MALER.defaultActions[this.evtData.action],
+      defaultListener: ActionHandler.defaultActions[this.evtData.action],
       ...this.evtData
     });
 
@@ -134,6 +133,84 @@ class MALER {
     return await this.action.reduceEvent(event, async function(m, fn) {
       return fn.call(this, event, m, ...args);
     }, data);
+  }
+}
+
+class Context {
+  constructor(model, userCtx, evtData) {
+    this.model = model;
+    this.userCtx = userCtx;
+    this.evtData = evtData;
+    // this.d
+  }
+
+  getActionHandler(name, mixin) {
+    const action = this.model.getAction(name);
+    const evtData = {
+      ...this.evtData,
+      ...mixin,
+      action: name,
+      model: this.model,
+      context: this,
+      userCtx: this.userCtx
+    };
+
+    return new ActionHandler(action, evtData);
+  }
+
+  async query(opts) {
+    const handler = this.getActionHandler("query", {
+      query: this.model.conf.query
+    });
+    
+    await handler.validate(null, opts);
+
+    let res = await handler.handle(opts);
+    if (Array.isArray(res)) res = { rows: res };
+    else if (res == null || !Array.isArray(res.rows)) res = { rows: [] };
+
+    const rowscopy = new Array(res.rows.length);
+    for (let i = 0; i < res.rows.length; i++) {
+      rowscopy[i] = await handler.transform(res.rows[i], null, opts);
+    }
+
+    return {
+      total_rows: res.total_rows != null ? res.total_rows : res.rows.length,
+      rows: rowscopy
+    };
+  }
+
+  async get(id, opts) {
+    const handler = this.getActionHandler("get", {
+      query: this.model.conf.query
+    });
+
+    await handler.validate(id, opts);
+    let res = await handler.handle(id, opts);
+    return await handler.transform(res, id, opts);
+  }
+
+  async create(doc, opts) {
+    const handler = this.getActionHandler("create");
+    await handler.validate(null, opts);
+    doc = await handler.normalize(doc, null, opts);
+    let res = await handler.handle(doc, opts);
+    return await handler.transform(res, null, opts);
+  }
+
+  async update(doc, id, opts) {
+    const handler = this.getActionHandler("update");
+    await handler.validate(id, opts);
+    doc = await handler.normalize(doc, id, opts);
+    let res = await handler.handle(doc, id, opts);
+    return await handler.transform(res, id, opts);
+  }
+
+  async delete(id, opts) {
+    const handler = this.getActionHandler("delete");
+    await handler.validate(id, opts);
+    let res = await handler.handle(id, opts);
+    return await handler.transform(res, id, opts);
   }
 }
 
@@ -268,71 +345,11 @@ export default class Model extends EventEmitter {
     return this;
   }
 
-  getActionHandler(name, mixin) {
-    const action = this.actions[name] || this;
-    const evtData = {
-      action: name,
-      model: this,
-      ...mixin
-    };
-
-    return new MALER(action, evtData);
+  getAction(name) {
+    return this.actions[name] || this;
   }
 
-  async query(opts, user) {
-    const handler = this.getActionHandler("query", {
-      user,
-      query: this.conf.query
-    });
-    
-    await handler.validate(null, opts);
-
-    let res = await handler.handle(opts);
-    if (Array.isArray(res)) res = { rows: res };
-    else if (res == null || !Array.isArray(res.rows)) res = { rows: [] };
-
-    const rowscopy = new Array(res.rows.length);
-    for (let i = 0; i < res.rows.length; i++) {
-      rowscopy[i] = await handler.transform(res.rows[i], null, opts);
-    }
-
-    return {
-      total_rows: res.total_rows != null ? res.total_rows : res.rows.length,
-      rows: rowscopy
-    };
-  }
-
-  async get(id, opts, user) {
-    const handler = this.getActionHandler("get", {
-      user,
-      query: this.conf.query
-    });
-
-    await handler.validate(id, opts);
-    let res = await handler.handle(id, opts);
-    return await handler.transform(res, id, opts);
-  }
-
-  async create(doc, opts, user) {
-    const handler = this.getActionHandler("create", { user });
-    await handler.validate(null, opts);
-    doc = await handler.normalize(doc, null, opts);
-    let res = await handler.handle(doc, opts);
-    return await handler.transform(res, null, opts);
-  }
-
-  async update(doc, id, opts, user) {
-    const handler = this.getActionHandler("update", { user });
-    await handler.validate(id, opts);
-    doc = await handler.normalize(doc, id, opts);
-    let res = await handler.handle(doc, id, opts);
-    return await handler.transform(res, id, opts);
-  }
-
-  async delete(id, opts, user) {
-    const handler = this.getActionHandler("delete", { user });
-    await handler.validate(id, opts);
-    let res = await handler.handle(id, opts);
-    return await handler.transform(res, id, opts);
+  context(userCtx, evtData) {
+    return new Context(this, userCtx, evtData);
   }
 }

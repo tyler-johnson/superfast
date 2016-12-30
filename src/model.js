@@ -162,7 +162,7 @@ class Context {
     const handler = this.getActionHandler("query", {
       query: this.model.conf.query
     });
-    
+
     await handler.validate(null, opts);
 
     let res = await handler.handle(opts);
@@ -219,7 +219,7 @@ export default class Model extends EventEmitter {
     super();
     this.conf = conf;
     this.name = check(conf.name, ["string","truthy"], "Expecting non-empty string for model name.");
-    
+
     if (conf.actions) {
       check(conf.actions, "object", "Expecting object or null for actions.");
       this.registerAction(conf.actions);
@@ -251,7 +251,7 @@ export default class Model extends EventEmitter {
     } else if (database instanceof CouchDB) {
       couch = database;
     }
-    
+
     if (couch == null) {
       couch = api.couchdbs.meta;
     }
@@ -272,6 +272,8 @@ export default class Model extends EventEmitter {
       const event = this.createEvent("setup");
       await this.emitEvent(event, this.db);
     });
+
+    return this;
   }
 
   async handleRequest(req, res, next) {
@@ -287,26 +289,27 @@ export default class Model extends EventEmitter {
     if (type == null) return next();
 
     const {query,user} = req;
+    const ctx = this.context(user);
     let output;
 
     switch (type) {
       case "query":
-        output = await this.query(query, user);
+        output = await ctx.query(query);
         break;
       case "get": {
-        const doc = await this.get(id, query, user);
+        const doc = await ctx.get(id, query);
         if (doc == null) throw new MissingError(`No ${this.name} exists with provided id.`);
         output = doc;
         break;
       }
       case "create":
-        output = await this.create(req.body, query, user);
+        output = await ctx.create(req.body, query);
         break;
       case "update":
-        output = await this.update(req.body, id, query, user);
+        output = await ctx.update(req.body, id, query);
         break;
       case "delete":
-        output = await this.delete(id, query, user);
+        output = await ctx.delete(id, query);
         break;
       default:
         return next();
@@ -327,7 +330,7 @@ export default class Model extends EventEmitter {
     }
 
     check(name, ["string","truthy"], "Expecting non-empty string for action name.");
-    
+
     if (typeof events === "function") events = { handle: events };
     check(events, ["object","truthy"], "Expecting an object or function for action.");
 

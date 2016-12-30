@@ -1,9 +1,10 @@
 import Model from "./model";
 import CouchDBManager from "./manager";
 import express from "express";
-import {router as handleErrors} from "./error";
+import {router as handleErrors,NoRouteError} from "./error";
 import * as routerUtils from "./utils/router";
 import EventEmitter from "./eventemitter";
+import {check} from "./utils/check";
 
 export default class API extends EventEmitter {
   constructor(conf={}) {
@@ -14,7 +15,13 @@ export default class API extends EventEmitter {
     };
 
     this.models = {};
+    this._auths = [];
     this.couchdbs = new CouchDBManager(this);
+  }
+
+  use(fn) {
+    fn.call(this, this);
+    return this;
   }
 
   model(model) {
@@ -49,7 +56,9 @@ export default class API extends EventEmitter {
 
     app.use(this.couchdbs.router());
     app.use(routerUtils.requestParser());
+    app.use(this._authRouter);
     app.use(this._modelRouter);
+    app.use((req, res, next) => next(new NoRouteError()));
     app.use(handleErrors);
 
     return app;
@@ -84,5 +93,34 @@ export default class API extends EventEmitter {
 
     const app = this.createRouter();
     return app.listen(port, cb);
+  }
+
+  authenticate = (auth) => {
+    const auths = this._auths.slice(0);
+    const next = (err) => {
+      if (err) return Promise.reject(err);
+      if (!auths.length) return Promise.resolve();
+
+      try {
+        return Promise.resolve(auths.shift().call(this, auth, next));
+      } catch(e) {
+        return next(e);
+      }
+    };
+
+    return next();
+  }
+
+  registerAuth(a) {
+    check(a, "function", "Expecting authentication function.");
+    this._auths.push(a);
+    return this;
+  }
+
+  _authRouter = (req, res, next) => {
+    this.authenticate(req.get("authorization")).then(r => {
+      req.user = r || {};
+      next();
+    }).catch(next);
   }
 }

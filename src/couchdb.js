@@ -165,7 +165,7 @@ export default class CouchDB {
           res = validateVersion(this._url, null, desired);
           break;
         case 401:
-          throw new Error("Failed to authorize with CouchDB : [ %s ]", this._url);
+          throw new Error(`Failed to authorize with CouchDB : [ ${this._url} ]`);
         default:
           throw e;
       }

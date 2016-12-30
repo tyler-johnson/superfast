@@ -35,7 +35,9 @@ export class SuperfastError extends Error {
 }
 
 export const ValidationError = SuperfastError.create("ValidationError", 400, "EINVALID", "Input failed validation.");
+export const UnauthorizedError = SuperfastError.create("UnauthorizedError", 500, "EAUTH", "You are not authorized to access this resource.");
 export const MissingError = SuperfastError.create("MissingError", 404, "EMISSING", "Requested resource is missing.");
+export const NoRouteError = SuperfastError.create("NoRouteError", 404, "ENOROUTE", "Requested API endpoint does not exist.");
 export const ExistsError = SuperfastError.create("ExistsError", 409, "EEXISTS", "Requested resource already exists.");
 export const InternalServerError = SuperfastError.create("InternalServerError", 500, "EINTERNAL", "Internal server error.");
 

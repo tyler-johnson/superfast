@@ -96,9 +96,7 @@ export default class EventEmitter {
 
     if (!event.stopped && event.bubbles && this._eventParent) {
       memo = await this._eventParent.reduceEvent(event, fn, memo);
-    }
-    
-    if (!event.defaultPrevented && event.defaultListener) {
+    } else if (!event.defaultPrevented && event.defaultListener) {
       memo = await fn.call(this, memo, event.defaultListener, event);
     }
 

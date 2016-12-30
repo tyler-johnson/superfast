@@ -1,14 +1,12 @@
 import CouchDB from "./couchdb";
-import {Router} from "express";
 import {parse} from "url";
 import {find} from "lodash";
 
 export default class CouchDBManager {
-  constructor(api) {
-    const { databases, couchdb, version } = api.conf;
+  constructor(conf={}) {
+    const { databases, couchdb, version } = conf;
     const hasDatabases = Array.isArray(databases) && databases.length;
 
-    this.api = api;
     this.version = version;
     this.databases = [];
     this.cores = [];
@@ -26,7 +24,6 @@ export default class CouchDBManager {
   _registerCouchDB(conf, privateOnly) {
     const couchdb = new CouchDB(conf, {
       privateOnly,
-      authenticate: this.api.authenticate,
       version: this.version
     });
     this.databases.push(couchdb);
@@ -35,18 +32,6 @@ export default class CouchDBManager {
 
   load() {
     return Promise.all(this.databases.map(db => db.load()));
-  }
-
-  router() {
-    const router = new Router();
-
-    router.use("/:dbid", (req, res, next) => {
-      const db = this.findById(req.params.dbid);
-      if (db && db.proxy) return db.proxy(req, res, next);
-      next();
-    });
-
-    return router;
   }
 
   metadb(dbname, opts) {

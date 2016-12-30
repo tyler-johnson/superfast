@@ -1,4 +1,4 @@
-import {ValidationError,UnauthorizedError} from "../error";
+import {ValidationError,UnauthorizedError} from "superfast-error";
 
 export default function(api) {
   api.users = api.model({
@@ -7,10 +7,10 @@ export default function(api) {
     query: {
       view: "find/by_name",
       include_docs: true,
-      key(id) {
-        console.log(arguments);
-        return id;
-      }
+      // key(id) {
+      //   console.log(arguments);
+      //   return id;
+      // }
     },
     events: {
       async setup(e, db) {

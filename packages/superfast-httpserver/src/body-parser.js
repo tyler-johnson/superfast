@@ -5,7 +5,7 @@ const jsonParser = bodyParser.json();
 const urlencodedParser = bodyParser.urlencoded({ extended: true });
 const parseMethods = ["POST","PUT","PATCH","DELETE"];
 
-export function requestParser() {
+export default function() {
   const parser = new Router();
   parser.use(jsonParser);
   parser.use(urlencodedParser);

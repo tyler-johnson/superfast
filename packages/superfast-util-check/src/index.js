@@ -22,6 +22,9 @@ const operators = {
   },
   $not(val, op) {
     return !isValid(val, op);
+  },
+  $instanceof(val, op) {
+    return val instanceof op;
   }
 };
 

@@ -6,16 +6,13 @@ import semver from "semver";
 import PouchDB from "pouchdb";
 import designPlugin from "pouchdb-design";
 import upsertPlugin from "pouchdb-upsert";
-import accessPlugin from "pouchdb-access";
 import securityPlugin from "pouchdb-security-helper";
-import {join,contains as urlContains} from "./utils/url";
-import authProxy from "./authproxy";
-import {check} from "./utils/check";
+import {join as joinUrl,contains as urlContains} from "superfast-util-url";
+import {check} from "superfast-util-check";
 import proxyAuth from "couch-proxy-auth";
 
 PouchDB.plugin(designPlugin);
 PouchDB.plugin(upsertPlugin);
-PouchDB.plugin(accessPlugin);
 PouchDB.plugin(securityPlugin);
 
 const debug = _debug("pagedip-api:couchdb");
@@ -31,7 +28,6 @@ export default class CouchDB {
 
     this._setups = [];
     this.privateOnly = Boolean(opts.privateOnly);
-    this.authenticate = check(opts.authenticate, "function", "Expecting function for authenticate");
     this.version = opts.version;
     this._parseConfig(config);
   }
@@ -87,9 +83,7 @@ export default class CouchDB {
       await this._setup();
     }
 
-    await this.resolveAuthProxy();
     await this.updateSize();
-
     this.debug("connected");
   }
 
@@ -138,7 +132,7 @@ export default class CouchDB {
 
   request(method, url) {
     const req = superagent(method, url);
-    if (this._url) req.url = join(this._url, req.url);
+    if (this._url) req.url = joinUrl(this._url, req.url);
     if (this._auth) req.auth(this._auth.username, this._auth.password);
     req.accept("application/json");
     return req;
@@ -183,18 +177,6 @@ export default class CouchDB {
     }
 
     return true;
-  }
-
-  async resolveAuthProxy() {
-    if (this.privateOnly || this._proxyUrl) return;
-
-    const {body} = await this.request("GET", "/")
-      .accept("application/json");
-
-    if (!body.proxy) this.proxy = authProxy({
-      target: this._url,
-      authenticate: this.authenticate
-    });
   }
 
   createPouchDB(dbname, opts={}) {
@@ -245,7 +227,7 @@ export default class CouchDB {
     }
 
     const _dbname = this.extractDBName(dburl);
-    const url = join(couchurl, _dbname || dbname || "");
+    const url = joinUrl(couchurl, _dbname || dbname || "");
 
     this.debug("resolved private db url : %s -> %s", dbname, url);
     return url;
@@ -260,7 +242,7 @@ export default class CouchDB {
 
     if (dbname != null) {
       const _dbname = this.extractDBName(dbname);
-      proxyUrl = join(proxyUrl, _dbname || dbname);
+      proxyUrl = joinUrl(proxyUrl, _dbname || dbname);
       this.debug("resolved public db url : %s -> %s", dbname, proxyUrl);
     }
 

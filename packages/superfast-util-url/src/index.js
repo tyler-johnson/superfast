@@ -1,16 +1,6 @@
 import {startsWith} from "lodash";
 import {parse,format} from "url";
-
-export function splitPathname(...paths) {
-  return paths.reduce((list, p) => {
-    return p && typeof p === "string" ?
-      list.concat(p.split("/").filter(Boolean)) : list;
-  }, []);
-}
-
-export function joinPathname(...paths) {
-  return (paths[0] && paths[0] === "/" ? "/" : "") + splitPathname(...paths).join("/");
-}
+import {join as joinPathname} from "superfast-util-path";
 
 export function join(...urls) {
   let out = {};
@@ -25,7 +15,7 @@ export function join(...urls) {
 
     // otherwise merge
     else {
-      if (pathname) out.pathname = joinPathname(out.pathname, pathname);
+      if (pathname) out.pathname = "/" + joinPathname(out.pathname, pathname);
       if (query) out.query = { ...out.query, ...query };
       if (hash) out.hash = hash;
     }

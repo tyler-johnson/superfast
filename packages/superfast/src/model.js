@@ -1,10 +1,10 @@
-import {check} from "./utils/check.js";
+import {check} from "superfast-util-check";
 import CouchDB from "./couchdb";
-import {splitPathname} from "./utils/url";
+import {split as splitPath} from "superfast-util-path";
 import {compile} from "kontur";
 import Ajv from "ajv";
-import {ValidationError,MissingError,ExistsError} from "./error";
-import EventEmitter from "./eventemitter";
+import {ValidationError,MissingError,ExistsError} from "superfast-error";
+import EventEmitter from "superfast-eventemitter";
 
 class ActionHandler {
   static defaultActions = {
@@ -277,7 +277,7 @@ export default class Model extends EventEmitter {
   }
 
   async handleRequest(req, res, next) {
-    const segments = splitPathname(req.path);
+    const segments = splitPath(req.path);
     if (segments[0] !== this.name || segments.length > 2) return next();
 
     const id = segments[1];

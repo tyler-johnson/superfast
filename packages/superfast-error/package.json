@@ -1,0 +1,11 @@
+{
+  "name": "superfast-error",
+  "version": "0.0.0",
+  "main": "lib/index.js",
+  "dependencies": {
+    "superfast-util-check": "*"
+  },
+  "files": [
+    "lib"
+  ]
+}

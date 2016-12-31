@@ -16,7 +16,6 @@
     "superagent": "^3.3.1",
     "superfast-eventemitter": "*",
     "superfast-error": "*",
-    "superfast-util-path": "*",
     "superfast-util-check": "*",
     "superfast-util-url": "*"
   },

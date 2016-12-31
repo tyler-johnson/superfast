@@ -1,6 +1,5 @@
 import {check} from "superfast-util-check";
 import CouchDB from "./couchdb";
-import {split as splitPath} from "superfast-util-path";
 import {compile} from "kontur";
 import Ajv from "ajv";
 import {ValidationError,MissingError,ExistsError} from "superfast-error";
@@ -274,51 +273,6 @@ export default class Model extends EventEmitter {
     });
 
     return this;
-  }
-
-  async handleRequest(req, res, next) {
-    const segments = splitPath(req.path);
-    if (segments[0] !== this.name || segments.length > 2) return next();
-
-    const id = segments[1];
-    const type = req.method === "GET" ? id ? "get" : "query" :
-      req.method === "POST" && !id ? "create" :
-      req.method === "PUT" && id ? "update" :
-      req.method === "DELETE" && id ? "delete" : null;
-
-    if (type == null) return next();
-
-    const {query,user} = req;
-    const ctx = this.context(user);
-    let output;
-
-    switch (type) {
-      case "query":
-        output = await ctx.query(query);
-        break;
-      case "get": {
-        const doc = await ctx.get(id, query);
-        if (doc == null) throw new MissingError(`No ${this.name} exists with provided id.`);
-        output = doc;
-        break;
-      }
-      case "create":
-        output = await ctx.create(req.body, query);
-        break;
-      case "update":
-        output = await ctx.update(req.body, id, query);
-        break;
-      case "delete":
-        output = await ctx.delete(id, query);
-        break;
-      default:
-        return next();
-    }
-
-    const event = this.createEvent("response", { user });
-    res.json(await this.reduceEvent(event, function(m, fn) {
-      return fn.call(this, event, m, query);
-    }, output));
   }
 
   actions = {};

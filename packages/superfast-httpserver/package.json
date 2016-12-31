@@ -8,7 +8,8 @@
     "couchdb-auth-proxy": "^1.1.2",
     "express": "^4.14.0",
     "superagent": "^3.3.1",
-    "superfast-error": "*"
+    "superfast-error": "*",
+    "superfast-util-path": "*"
   },
   "files": [
     "lib"

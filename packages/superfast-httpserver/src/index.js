@@ -3,6 +3,7 @@ import authProxy from "./authproxy";
 import bodyParser from "./body-parser";
 import handleErrors from "./errors";
 import {NoRouteError} from "superfast-error";
+import handleModel from "./model";
 
 export default function(api) {
   const router = express();
@@ -56,7 +57,7 @@ export default function(api) {
       const model = api.models[models.shift()];
 
       try {
-        await model.handleRequest(req, res, next);
+        await handleModel(model, req, res, next);
       } catch(e) {
         return done(e);
       }

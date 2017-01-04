@@ -43,12 +43,6 @@ export default class EventEmitter {
     return new Event(this, type, data);
   }
 
-  listenerCount(event) {
-    check(event, [Event.isEvent,"string"], "Expecting event or event type.");
-    const fns = this._events[typeof event === "string" ? event : event.type];
-    return fns ? fns.length : 0;
-  }
-
   async emitEvent(event, ...args) {
     await this.reduceEvent(event, function(m, fn) {
       fn.call(this, event, ...args);

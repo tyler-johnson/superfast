@@ -40,7 +40,7 @@ export default class Event {
       if (fns != null && fns.length) {
         for (let i = 0; i < fns.length; i++) {
           if (this.stopped) break;
-          memo = await fn.call(observer, memo, fns[i], this);
+          memo = await fn.call(this, memo, fns[i], observer);
         }
       }
 
@@ -48,7 +48,7 @@ export default class Event {
     }
 
     if (!this.defaultPrevented && this.defaultListener) {
-      memo = await fn.call(this, memo, this.defaultListener, this);
+      memo = await fn.call(this, memo, this.defaultListener, null);
     }
 
     return memo;

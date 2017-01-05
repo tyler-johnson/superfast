@@ -1,7 +1,18 @@
 import Model from "./model";
 import Observer from "superfast-observer";
 import {EventEmitter} from "events";
-import {assign} from "lodash";
+import {check} from "superfast-util-check";
+
+function authenticate(event, auth) {
+  return event.reduce(function(m, fn, ob) {
+    if (m != null) {
+      event.stopImmediatePropagation();
+      return m;
+    }
+
+    return fn.call(ob, event, auth);
+  });
+}
 
 export default class API extends Observer {
   constructor(conf={}) {
@@ -9,7 +20,12 @@ export default class API extends Observer {
     EventEmitter.call(this);
     this.conf = conf;
     this.models = {};
-    this._auths = [];
+    this.backends = {};
+    this.registerEventHandler("authenticate", authenticate);
+  }
+
+  static isAPI(api) {
+    return api instanceof API;
   }
 
   use(fn) {
@@ -32,31 +48,19 @@ export default class API extends Observer {
     throw new Error("Expecting model name or an object of config");
   }
 
-  load() {
-    if (this._loaded) return Promise.resolve();
-
-    if (!this._loading) {
-      this._loading = this.fire("load").then(r => {
-        this._loaded = true;
-        return r;
-      });
-    }
-
-    return this._loading;
+  authenticate(auth) {
+    return this.fire("authenticate", auth);
   }
 
-  authenticate = (auth) => {
-    const event = this.createEvent("authenticate");
-
-    return event.reduce(function(m, fn) {
-      if (m != null) {
-        event.stopImmediatePropagation();
-        return m;
-      }
-
-      return fn.call(this, event, auth);
-    });
+  backend(name, backend) {
+    check(name, "string", "Expecting string for name");
+    
+    if (typeof backend === "object" && backend != null) {
+      this.backends[name] = backend;
+    }
+    
+    return this.backends[name];
   }
 }
 
-assign(API.prototype, EventEmitter.prototype);
+Object.assign(API.prototype, EventEmitter.prototype);

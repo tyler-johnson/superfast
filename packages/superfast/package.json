@@ -4,9 +4,7 @@
   "main": "lib/index.js",
   "dependencies": {
     "ajv": "^4.10.3",
-    "debug": "^2.6.0",
     "kontur": "^0.2.0",
-    "lodash": "^4.17.3",
     "superfast-observer": "*",
     "superfast-util-check": "*"
   },

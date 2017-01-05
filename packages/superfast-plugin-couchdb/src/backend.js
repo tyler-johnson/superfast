@@ -30,10 +30,6 @@ export default class Backend {
     return couchdb;
   }
 
-  load() {
-    return Promise.all(this.databases.map(db => db.load()));
-  }
-
   metadb(dbname, opts) {
     return this.meta.createPouchDB(dbname, opts);
   }

@@ -7,7 +7,7 @@ export {Event};
 export default class Observer {
   constructor(parent) {
     this._observerParent = parent;
-    this._observers = {};
+    this._observerHandlers = {};
     this._observerListeners = {};
   }
 
@@ -53,15 +53,15 @@ export default class Observer {
     return new Event(this, type, data);
   }
 
-  registerObserver(type, fn) {
+  registerEventHandler(type, fn) {
     if (type && typeof type === "object") {
-      Object.keys(type).forEach(k => this.registerObserver(k, type[k]));
+      Object.keys(type).forEach(k => this.registerEventHandler(k, type[k]));
       return this;
     }
 
     check(type, ["string","truthy"], "Expecting non-empty string for event type.");
     check(fn, "function", "Expecting function for event handler.");
-    this._observers[type] = fn;
+    this._observerHandlers[type] = fn;
     return this;
   }
 
@@ -69,16 +69,16 @@ export default class Observer {
     if (event && typeof event === "string") event = this.createEvent(event);
     check(event, Event.isEvent, "Expecting Event to emit.");
 
-    if (this._observers[event.type]) {
-      return await this._observers[event.type].call(this, event, ...args);
+    if (this._observerHandlers[event.type]) {
+      return await this._observerHandlers[event.type].call(this, event, ...args);
     }
 
     if (this._observerParent) {
       return await this._observerParent.fire(event, ...args);
     }
 
-    await event.reduce(function(m, fn) {
-      return fn.call(this, event, ...args);
+    await event.reduce(function(m, fn, ob) {
+      return fn.call(ob, event, ...args);
     });
   }
 }

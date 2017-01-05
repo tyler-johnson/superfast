@@ -1,5 +1,3 @@
-import {assign} from "lodash";
-
 export default class Context {
   constructor(model, userCtx, evtData) {
     this.model = model;
@@ -12,7 +10,7 @@ export default class Context {
   }
 
   mixin(data) {
-    assign(this.evtData, data);
+    Object.assign(this.evtData, data);
     return this;
   }
 

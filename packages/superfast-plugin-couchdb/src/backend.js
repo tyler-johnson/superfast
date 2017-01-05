@@ -2,7 +2,7 @@ import CouchDB from "./couchdb";
 import {parse} from "url";
 import {find} from "lodash";
 
-export default class CouchDBManager {
+export default class Backend {
   constructor(conf={}) {
     const { databases, couchdb, version } = conf;
     const hasDatabases = Array.isArray(databases) && databases.length;

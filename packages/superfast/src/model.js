@@ -1,9 +1,8 @@
 import {check} from "superfast-util-check";
-import CouchDB from "./couchdb";
 import {compile} from "kontur";
 import Ajv from "ajv";
 // import {ValidationError,MissingError,ExistsError} from "superfast-error";
-import EventEmitter from "superfast-eventemitter";
+import Observer from "superfast-observer";
 import Action from "./action";
 import Context from "./context";
 
@@ -215,21 +214,13 @@ import Context from "./context";
 //   }
 // }
 
-export default class Model extends EventEmitter {
-  constructor(conf={}) {
-    super();
+export default class Model extends Observer {
+  constructor(api, conf={}) {
+    super(api);
+
+    this.api = api;
     this.conf = conf;
     this.name = check(conf.name, ["string","truthy"], "Expecting non-empty string for model name.");
-
-    // if (conf.actions) {
-    //   check(conf.actions, "object", "Expecting object or null for actions.");
-    //   this.registerAction(conf.actions);
-    // }
-
-    if (conf.events) {
-      check(conf.events, "object", "Expecting object or null for events.");
-      this.addListener(conf.events);
-    }
 
     if (conf.schema) {
       const ajv = new Ajv({
@@ -241,45 +232,9 @@ export default class Model extends EventEmitter {
     }
   }
 
-  init(api) {
-    check(this.db, "empty", "This model has already be initiated.");
-
-    const {database} = this.conf;
-    let couch;
-
-    if (database && typeof database === "string") {
-      couch = api.couchdbs.findById(database);
-    } else if (database instanceof CouchDB) {
-      couch = database;
-    }
-
-    if (couch == null) {
-      couch = api.couchdbs.meta;
-    }
-
-    this.api = this._eventParent = api;
-    this.couch = couch;
-
-    const dbname = this.conf.dbname || this.name;
-    this.db = couch.createPouchDB(dbname);
-
-    couch.setup(async () => {
-      try {
-        await couch.request("PUT", dbname);
-      } catch(e) {
-        if (e.status !== 412) throw e;
-      }
-
-      const event = this.createEvent("setup");
-      await this.emitEvent(event, this.db);
-    });
-
-    return this;
-  }
-
   actions = {};
 
-  registerAction(name, fn) {
+  action(name, fn) {
     if (name && typeof name === "object") {
       return Object.keys(name).reduce((m, n) => {
         m[n] = this.registerAction(n, name[n]);
@@ -288,24 +243,12 @@ export default class Model extends EventEmitter {
     }
 
     check(name, ["string","truthy"], "Expecting non-empty string for action name.");
-    check(fn, "function", "Expecting an function for action.");
 
-    this.actions[name] = new Action(this, name, fn);
+    if (typeof fn === "function") {
+      this.actions[name] = new Action(this, name, fn);
+    }
 
     return this.actions[name];
-  }
-
-  getAction(name) {
-    return this.actions[name];
-  }
-
-  _lifecycle = {};
-
-  registerLifecycleEvent(name, fn) {
-    check(name, ["string","truthy"], "Expecting non-empty string for lifecycle event name.");
-    check(fn, "function", "Expecting an function for lifecycle event.");
-    this._lifecycle[name] = fn;
-    return this;
   }
 
   context(userCtx, evtData) {

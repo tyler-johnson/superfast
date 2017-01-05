@@ -1,5 +1,5 @@
 {
-  "name": "superfast-eventemitter",
+  "name": "superfast-observer",
   "version": "0.0.0",
   "main": "lib/index.js",
   "dependencies": {

@@ -4,20 +4,11 @@
   "main": "lib/index.js",
   "dependencies": {
     "ajv": "^4.10.3",
-    "couch-proxy-auth": "^1.0.1",
     "debug": "^2.6.0",
     "kontur": "^0.2.0",
     "lodash": "^4.17.3",
-    "pouchdb": "^6.1.0",
-    "pouchdb-design": "^1.2.3",
-    "pouchdb-security-helper": "^1.1.1",
-    "pouchdb-upsert": "^2.0.2",
-    "semver": "^5.3.0",
-    "superagent": "^3.3.1",
-    "superfast-eventemitter": "*",
-    "superfast-error": "*",
-    "superfast-util-check": "*",
-    "superfast-util-url": "*"
+    "superfast-observer": "*",
+    "superfast-util-check": "*"
   },
   "files": [
     "lib"

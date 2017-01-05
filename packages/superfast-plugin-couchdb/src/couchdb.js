@@ -2,14 +2,13 @@ import _debug from "debug";
 import {uniqueId} from "lodash";
 import {parse,format} from "url";
 import superagent from "superagent";
-import semver from "semver";
 import PouchDB from "pouchdb";
 import designPlugin from "pouchdb-design";
 import upsertPlugin from "pouchdb-upsert";
 import securityPlugin from "pouchdb-security-helper";
 import {join as joinUrl,contains as urlContains} from "superfast-util-url";
-import {check} from "superfast-util-check";
 import proxyAuth from "couch-proxy-auth";
+import {check} from "superfast-util-check";
 
 PouchDB.plugin(designPlugin);
 PouchDB.plugin(upsertPlugin);
@@ -32,6 +31,10 @@ export default class CouchDB {
     this._parseConfig(config);
   }
 
+  static isCouchDB(db) {
+    return db instanceof CouchDB;
+  }
+
   load() {
     if (this._loaded) return Promise.resolve();
     if (this._loading) return this._loading;
@@ -45,21 +48,17 @@ export default class CouchDB {
   }
 
   setup(fn) {
-    check(fn, "function", "Expecting function for fn");
+    check(fn, "function", "Expecting function for setup.");
     this._setups.push(fn);
+    return this;
   }
 
   async _setup() {
     for (let i = 0; i < this._setups.length; i++) {
-      const setup = this._setups[i];
-      await setup(this);
+      await this._setups[i].call(this);
     }
 
-    if (this.version) await this.configure({
-      superfast: {
-        version: this.version,
-        install_date: new Date()
-      },
+    await this.configure({
       httpd: {
         authentication_handlers: function(val) {
           if (typeof val !== "string") val = "";
@@ -77,12 +76,7 @@ export default class CouchDB {
   }
 
   async _load() {
-    this.debug(`connecting to CouchDB`);
-    if (!(await this.verifyConfigVersion())) {
-      this.debug(`setting up CouchDB`);
-      await this._setup();
-    }
-
+    await this._setup();
     await this.updateSize();
     this.debug("connected");
   }
@@ -136,47 +130,6 @@ export default class CouchDB {
     if (this._auth) req.auth(this._auth.username, this._auth.password);
     req.accept("application/json");
     return req;
-  }
-
-  async verifyConfigVersion() {
-    const {version:desired} = this._options;
-    let res;
-
-    try {
-      let version = this._version;
-
-      if (version == null) {
-        const {body} = await this.request("GET", "/_config/superfast/version");
-        this._version = version = body;
-      }
-
-      res = validateVersion(this._url, version, desired);
-    } catch(e) {
-      if (!e.response) throw e;
-
-      switch(e.response.statusCode) {
-        case 404:
-          res = validateVersion(this._url, null, desired);
-          break;
-        case 401:
-          throw new Error(`Failed to authorize with CouchDB : [ ${this._url} ]`);
-        default:
-          throw e;
-      }
-    }
-
-    if (res) {
-      // missing or out of range is upgradeable
-      if (res.type === "missing" || res.type === "out_of_range" || res.type === "missing_desired")  {
-        debug("[%s] %s", res.name, res.message);
-        return false;
-      }
-
-      // everything else is a hazard
-      throw res;
-    }
-
-    return true;
   }
 
   createPouchDB(dbname, opts={}) {
@@ -320,34 +273,6 @@ export default class CouchDB {
       }
     }
   }
-}
-
-function validateVersion(url, version, desired) {
-  let err = new Error();
-  err.name = "VersionError";
-  err.couchdb = url;
-  err.actual = version;
-  err.desired = desired;
-
-  if (!version) {
-    err.message = `CouchDB [${url}] is missing Pagedip specific configuration.`;
-    err.type = "missing";
-  } else if (version === "edge" && process.env.NODE_ENV === "development") {
-    return;
-  } else if (!semver.valid(version)) {
-    err.message = `Invalid installed Pagedip version '${version}' on CouchDB [${url}].`;
-    err.type = "invalid";
-  } else if (!desired) {
-    err.message = `API configuration is missing a desired CouchDB version range.`;
-    err.type = "missing_desired";
-  } else if (!semver.satisfies(version, desired)) {
-    err.message = `Installed Pagedip version '${version}' on CouchDB [${url}] is incompatible with this version of Pagedip API.`;
-    err.type = "out_of_range";
-  } else {
-    return;
-  }
-
-  return err;
 }
 
 function handleRequestError(e) {

@@ -1,6 +1,4 @@
-import Lifecycle from "./lifecycle";
-import Action from "./action";
-import {check} from "superfast-util-check";
+import {assign} from "lodash";
 
 export default class Context {
   constructor(model, userCtx, evtData) {
@@ -13,9 +11,22 @@ export default class Context {
     return ctx instanceof Context;
   }
 
-  lifecycle(action) {
-    if (typeof action === "string") action = this.model.getAction(action);
-    check(action, Action.isAction, "Expecting action to create lifecycle from.");
-    return new Lifecycle(action, this);
+  mixin(data) {
+    assign(this.evtData, data);
+    return this;
+  }
+
+  eventData(mixin) {
+    return {
+      ...this.evtData,
+      ...mixin,
+      model: this.model,
+      context: this,
+      userCtx: this.userCtx
+    };
+  }
+
+  fire(action, name, ...args) {
+    return action.fire(action.createEvent(name, this.eventData()), ...args);
   }
 }

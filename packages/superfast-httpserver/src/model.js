@@ -41,7 +41,7 @@ export default async function(model, req, res, next) {
   }
 
   const event = model.createEvent("response", { user });
-  res.json(await model.reduceEvent(event, function(m, fn) {
+  res.json(await event.reduce(function(m, fn) {
     return fn.call(this, event, m, query);
   }, output));
 }

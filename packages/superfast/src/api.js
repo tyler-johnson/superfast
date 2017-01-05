@@ -1,15 +1,15 @@
 import Model from "./model";
-import CouchDBManager from "./manager";
-import EventEmitter from "superfast-eventemitter";
-import {check} from "superfast-util-check";
+import Observer from "superfast-observer";
+import {EventEmitter} from "events";
+import {assign} from "lodash";
 
-export default class API extends EventEmitter {
+export default class API extends Observer {
   constructor(conf={}) {
     super();
+    EventEmitter.call(this);
     this.conf = conf;
     this.models = {};
     this._auths = [];
-    this.couchdbs = new CouchDBManager(this.conf);
   }
 
   use(fn) {
@@ -23,41 +23,40 @@ export default class API extends EventEmitter {
     }
 
     if (typeof model === "object" && model != null) {
-      if (!(model instanceof Model)) {
-        model = new Model(model);
-      }
-
+      model = new Model(this, model);
       this.models[model.name] = model;
-      model.init(this);
+      this.emit("model", model);
       return model;
     }
 
-    throw new Error("Expecting model name or a model object");
+    throw new Error("Expecting model name or an object of config");
   }
 
   load() {
-    return this.couchdbs.load();
+    if (this._loaded) return Promise.resolve();
+
+    if (!this._loading) {
+      this._loading = this.fire("load").then(r => {
+        this._loaded = true;
+        return r;
+      });
+    }
+
+    return this._loading;
   }
 
   authenticate = (auth) => {
-    const auths = this._auths.slice(0);
-    const next = (err) => {
-      if (err) return Promise.reject(err);
-      if (!auths.length) return Promise.resolve();
+    const event = this.createEvent("authenticate");
 
-      try {
-        return Promise.resolve(auths.shift().call(this, auth, next));
-      } catch(e) {
-        return next(e);
+    return event.reduce(function(m, fn) {
+      if (m != null) {
+        event.stopImmediatePropagation();
+        return m;
       }
-    };
 
-    return next();
-  }
-
-  registerAuth(a) {
-    check(a, "function", "Expecting authentication function.");
-    this._auths.push(a);
-    return this;
+      return fn.call(this, event, auth);
+    });
   }
 }
+
+assign(API.prototype, EventEmitter.prototype);

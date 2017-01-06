@@ -1,74 +1,66 @@
 import express from "express";
-import authProxy from "./authproxy";
-import bodyParser from "./body-parser";
+// import authProxy from "./authproxy";
+// import bodyParser from "./body-parser";
 import handleErrors from "./errors";
 import {NoRouteError} from "superfast-error";
-import handleModel from "./model";
+import createModelRouter from "./model";
 
-export default function(api) {
-  const router = express();
+export default function() {
+  return function(api) {
+    const modelRouter = createModelRouter(api);
+    
+    api.createRouter = function() {
+      const router = express();
+      this.emit("router", router);
 
-  // wait for the api to load before requests go through
-  const load = api.load();
-  router.use(function(req, res, next) {
-    load.then(() => next(), next);
-  });
+      // // create auth proxies for database that are missing proxy info
+      // const manager = api.couchdbs;
+      // const authProxies = manager.databases.reduce((proxies, db) => {
+      //   if (!db.privateOnly && !db._proxyUrl) {
+      //     proxies[db.id] = authProxy({
+      //       target: db._url,
+      //       authenticate: api.authenticate
+      //     });
+      //   }
 
-  // create auth proxies for database that are missing proxy info
-  const manager = api.couchdbs;
-  const authProxies = manager.databases.reduce((proxies, db) => {
-    if (!db.privateOnly && !db._proxyUrl) {
-      proxies[db.id] = authProxy({
-        target: db._url,
-        authenticate: api.authenticate
-      });
-    }
+      //   return proxies;
+      // }, {});
 
-    return proxies;
-  }, {});
+      // // database auth proxies
+      // router.use("/:dbid", function(req, res, next) {
+      //   if (authProxies[req.params.dbid]) {
+      //     authProxies[req.params.dbid](req, res, next);
+      //   } else {
+      //     next();
+      //   }
+      // });
 
-  // database auth proxies
-  router.use("/:dbid", function(req, res, next) {
-    if (authProxies[req.params.dbid]) {
-      authProxies[req.params.dbid](req, res, next);
-    } else {
-      next();
-    }
-  });
+      // // authenticate requests
+      // router.use(function(req, res, next) {
+      //   api.authenticate(req.get("authorization")).then(r => {
+      //     req.user = r || {};
+      //     next();
+      //   }).catch(next);
+      // });
 
-  // authenticate requests
-  router.use(function(req, res, next) {
-    api.authenticate(req.get("authorization")).then(r => {
-      req.user = r || {};
-      next();
-    }).catch(next);
-  });
+      // core model routes
+      router.use(modelRouter);
 
-  // parse incoming request bodies
-  router.use(bodyParser());
+      // handle errors
+      router.use(() => { throw new NoRouteError(); });
+      router.use(handleErrors);
 
-  // core model routes
-  router.use(function(req, res, done) {
-    const models = Object.keys(api.models);
-
-    const next = async (err) => {
-      if (err) return done(err);
-      if (!models.length) return done();
-      const model = api.models[models.shift()];
-
-      try {
-        await handleModel(model, req, res, next);
-      } catch(e) {
-        return done(e);
-      }
+      return router;
     };
 
-    next();
-  });
+    api.listen = function(port, cb) {
+      if (typeof port === "function") {
+        [cb,port] = [port,null];
+      }
 
-  // handle errors
-  router.use(() => { throw new NoRouteError(); });
-  router.use(handleErrors);
+      if (port == null) port = this.conf.port || 3000;
 
-  return router;
+      return this.createRouter().listen(port, cb);
+    };
+  };
 }

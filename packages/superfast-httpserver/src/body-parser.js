@@ -10,12 +10,14 @@ export default function() {
   parser.use(jsonParser);
   parser.use(urlencodedParser);
 
-  return async function(req, res, next) {
+  return async function(req, res) {
+    if (req.body != null) return req.body;
     if (parseMethods.indexOf(req.method) >= 0) {
-      await parser(req, res, next);
+      return new Promise((resolve, reject) => {
+        parser(req, res, (err) => err ? reject(err) : resolve(req.body));
+      });
     } else {
-      req.body = {};
-      next();
+      return (req.body = {});
     }
   };
 }

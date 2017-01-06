@@ -5,6 +5,12 @@
   "dependencies": {
     "superfast-error": "*"
   },
+  "peerDependencies": {
+    "superfast": "*"
+  },
+  "devDependencies": {
+    "superfast": "*"
+  },
   "files": [
     "lib"
   ]

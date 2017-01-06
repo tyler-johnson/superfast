@@ -39,8 +39,12 @@ export default class API extends Observer {
     }
 
     if (typeof model === "object" && model != null) {
-      model = new Model(this, model);
+      if (!Model.isModel(model)) {
+        model = new Model(model);
+      }
+
       this.models[model.name] = model;
+      model.init(this);
       this.emit("model", model);
       return model;
     }

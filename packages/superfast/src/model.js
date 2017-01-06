@@ -7,11 +7,10 @@ import Context from "./context";
 import {EventEmitter} from "events";
 
 export default class Model extends Observer {
-  constructor(api, conf={}) {
-    super(api);
+  constructor(conf={}) {
+    super();
     EventEmitter.call(this);
 
-    this.api = api;
     this.conf = conf;
     this.name = check(conf.name, ["string","truthy"], "Expecting non-empty string for model name.");
 
@@ -23,6 +22,17 @@ export default class Model extends Observer {
 
       this.schema = ajv.compile(compile(conf.schema));
     }
+  }
+
+  static isModel(m) {
+    return m instanceof Model;
+  }
+
+  init(api) {
+    check(this.api, "empty", "This model has already been initiated with an API.");
+    this._observerParent = this.api = api;
+    this.emit("mount", api);
+    return this;
   }
 
   actions = {};

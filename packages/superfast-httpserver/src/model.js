@@ -1,7 +1,8 @@
 import {split as splitPath} from "superfast-util-path";
 import {MissingError} from "superfast-error";
+import bodyParser from "./body-parser";
 
-export default async function(model, req, res, next) {
+export async function modelware(model, req, res, next) {
   const segments = splitPath(req.path);
   if (segments[0] !== model.name || segments.length > 2) return next();
 
@@ -28,10 +29,10 @@ export default async function(model, req, res, next) {
       break;
     }
     case "create":
-      output = await ctx.create(req.body, query);
+      output = await ctx.create(await bodyParser(req, res), query);
       break;
     case "update":
-      output = await ctx.update(req.body, id, query);
+      output = await ctx.update(await bodyParser(req, res), id, query);
       break;
     case "delete":
       output = await ctx.delete(id, query);
@@ -44,4 +45,19 @@ export default async function(model, req, res, next) {
   res.json(await event.reduce(function(m, fn) {
     return fn.call(this, event, m, query);
   }, output));
+}
+
+export default function(api) {
+  return function(req, res, done) {
+    const models = Object.keys(api.models);
+
+    const next = async (err) => {
+      if (err) throw err;
+      if (!models.length) return done();
+      const model = api.models[models.shift()];
+      await modelware(model, req, res, next);
+    };
+
+    next().catch(done);
+  };
 }

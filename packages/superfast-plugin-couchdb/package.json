@@ -9,11 +9,12 @@
     "pouchdb": "^6.1.0",
     "pouchdb-design": "^1.2.3",
     "pouchdb-security-helper": "^1.1.1",
+    "pouchdb-upsert": "^2.0.2",
     "semver": "^5.3.0",
     "superagent": "^3.3.1",
+    "superfast-error": "*",
     "superfast-util-check": "*",
-    "superfast-util-url": "*",
-    "superfast-error": "*"
+    "superfast-util-url": "*"
   },
   "files": [
     "lib"

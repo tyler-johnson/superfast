@@ -2,13 +2,14 @@ import Observer from "superfast-observer";
 import {check} from "superfast-util-check";
 
 export default class Action extends Observer {
-  constructor(model, name, fn) {
+  constructor(model, name, fn, options={}) {
     super(model);
     check(name, "string", "Expecting string for action name.");
     check(fn, "function", "Expecting function for action method.");
 
     this.name = name;
     this.model = model;
+    this.options = options;
     this._fn = fn;
   }
 

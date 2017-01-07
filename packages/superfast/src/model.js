@@ -37,10 +37,10 @@ export default class Model extends Observer {
 
   actions = {};
 
-  action(name, fn) {
+  action(name, fn, opts) {
     if (name && typeof name === "object") {
       return Object.keys(name).reduce((m, n) => {
-        m[n] = this.action(n, name[n]);
+        m[n] = this.action(n, ...[].concat(name[n]));
         return m;
       }, {});
     }
@@ -48,7 +48,7 @@ export default class Model extends Observer {
     check(name, ["string","truthy"], "Expecting non-empty string for action name.");
 
     if (typeof fn === "function") {
-      this.actions[name] = new Action(this, name, fn);
+      this.actions[name] = new Action(this, name, fn, opts);
       this.emit("action", this.actions[name]);
     }
 

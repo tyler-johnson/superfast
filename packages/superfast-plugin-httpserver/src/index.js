@@ -5,10 +5,17 @@ import handleErrors from "./errors";
 import {NoRouteError} from "superfast-error";
 import createModelRouter from "./model";
 
+function responseEvent(event, data, res) {
+  return event.reduce((m, fn, ob) => {
+    return fn.call(ob, event, m, res);
+  }, data);
+}
+
 export default function() {
   return function(api) {
     const modelRouter = createModelRouter(api);
-    
+    api.registerEventHandler("response", responseEvent);
+
     api.createRouter = function() {
       const router = express();
       this.emit("router", router);

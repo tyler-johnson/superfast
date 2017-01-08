@@ -1,33 +1,31 @@
 import {split as splitPath} from "superfast-util-path";
-import bodyParser from "./body-parser";
+import _bodyParser from "./body-parser";
 import pathToRegExp from "path-to-regexp";
+import {defaults} from "superfast-util-check";
+
+const bodyParser = _bodyParser();
 
 function prepAction(action) {
   const {httpserver:conf} = action.options;
   if (!conf) return;
 
-  const routes = [];
-  action.httpserver = { routes };
+  let {method,path,args} = conf;
+  method = defaults(method, "string", "get");
+  path = defaults(path, "string", "/");
+  args = defaults(args, "function", ()=>[]);
 
-  Object.keys(conf).forEach(key => {
-    const fn = conf[key];
-    if (typeof fn !== "function") return;
+  const pathParams = [];
+  const pathRegex = pathToRegExp(path, pathParams);
 
-    const [method,...rest] = key.split(" ");
-    const pathParams = [];
-    const path = rest.join(" ");
-    const pathRegex = pathToRegExp(path, pathParams);
-
-    routes.push({
-      method: method.toUpperCase(),
-      path: {
-        params: pathParams,
-        regexp: pathRegex,
-        path
-      },
-      handle: fn
-    });
-  });
+  action.httproute = {
+    args,
+    method: method.toUpperCase(),
+    path: {
+      params: pathParams,
+      regexp: pathRegex,
+      original: path
+    }
+  };
 }
 
 function prepModel(model) {
@@ -45,35 +43,32 @@ export async function modelware(model, req, res, next) {
   
   while (actionKeys.length) {
     const action = model.actions[actionKeys.shift()];
-    const {httpserver={}} = action;
-    const routes = [].concat(httpserver.routes).filter(Boolean);
+    const {httproute:route={}} = action;
+    if (route.method !== req.method) continue;
 
-    while (routes.length) {
-      const route = routes.shift();
-      if (route.method !== req.method) continue;
+    const pathMatch = route.path.regexp.exec(currentPath);
+    if (!pathMatch) continue;
 
-      const pathMatch = route.path.regexp.exec(currentPath);
-      if (!pathMatch) continue;
+    const newreq = Object.create(req);
+    newreq.body = await bodyParser(req, res);
+    newreq.params = route.path.params.reduce((p, {name:n}, i) => {
+      p[n] = pathMatch[i + 1];
+      return p;
+    }, {});
 
-      const newreq = Object.create(req);
-      newreq.body = bodyParser(req, res);
-      newreq.params = route.path.params.reduce((p, {name:n}, i) => {
-        p[n] = pathMatch[i + 1];
-        return p;
-      }, {});
+    const args = await route.args.call(action, newreq, ctx);
+    const result = await action.run(ctx, args);
 
-      const result = await route.handle(ctx, newreq);
-      const resEvent = action.createEvent("response", {
-        request: req,
-        response: res,
-        defaultListener(e, data) {
-          res.send(data);
-        }
-      });
+    const resEvent = action.createEvent("response", {
+      request: req,
+      response: res,
+      defaultListener(e, data) {
+        res.json(data);
+      }
+    });
 
-      action.fire(resEvent, result, res);
-      return;
-    }
+    action.fire(resEvent, result, res);
+    return;
   }
 
   next();

@@ -3,17 +3,6 @@ import Observer from "superfast-observer";
 import {EventEmitter} from "events";
 import {check} from "superfast-util-check";
 
-function authenticate(event, auth) {
-  return event.reduce(function(m, fn, ob) {
-    if (m != null) {
-      event.stopImmediatePropagation();
-      return m;
-    }
-
-    return fn.call(ob, event, auth);
-  });
-}
-
 export default class API extends Observer {
   constructor(conf={}) {
     super();
@@ -21,7 +10,6 @@ export default class API extends Observer {
     this.conf = conf;
     this.models = {};
     this.backends = {};
-    this.registerEventHandler("authenticate", authenticate);
   }
 
   static isAPI(api) {
@@ -50,10 +38,6 @@ export default class API extends Observer {
     }
 
     throw new Error("Expecting model name or an object of config");
-  }
-
-  authenticate(auth) {
-    return this.fire("authenticate", auth);
   }
 
   backend(name, backend) {

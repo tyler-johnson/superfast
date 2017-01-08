@@ -24,7 +24,11 @@ export default class Context {
     };
   }
 
+  createEvent(action, name, evtData) {
+    return action.createEvent(name, this.eventData(evtData));
+  }
+
   fire(action, name, ...args) {
-    return action.fire(action.createEvent(name, this.eventData()), ...args);
+    return action.fire(this.createEvent(action, name), ...args);
   }
 }

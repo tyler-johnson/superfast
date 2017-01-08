@@ -1,4 +1,5 @@
 import {isRegExp,isDate,isNull} from "lodash";
+import {ValidationError} from "superfast-error";
 
 const types = {
   "array": Array.isArray,
@@ -55,7 +56,7 @@ export function isValid(value, validate) {
 
 export function check(value, validate, message) {
   if (!isValid(value, validate)) {
-    throw new Error(message || "invalid value");
+    throw new ValidationError(message || "invalid value");
   }
 
   return value;

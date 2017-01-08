@@ -1,6 +1,6 @@
 import Backend from "./backend";
-import * as events from "./events";
 import initModel from "./model";
+import * as eventHandlers from "./event-handlers";
 
 export default function(conf) {
   const backend = new Backend(conf);
@@ -9,8 +9,8 @@ export default function(conf) {
     // add couchdb backend
     api.backend("couchdb", backend);
 
-    // register event handlers: validate, transform, etc.
-    api.registerEventHandler(events);
+    // register event handlers used by couchdb actions
+    api.registerEventHandler(eventHandlers);
 
     // manipulate every model to be created on the api
     api.on("model", initModel);

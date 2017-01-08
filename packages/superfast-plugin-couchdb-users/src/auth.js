@@ -1,6 +1,6 @@
 import {UnauthorizedError} from "superfast-error";
 
-export default async function(auth) {
+export default async function(event, auth) {
   if (typeof auth !== "string" ||
     auth.substr(0, 6).toLowerCase() !== "basic ") return;
 

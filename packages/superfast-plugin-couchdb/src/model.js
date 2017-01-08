@@ -1,42 +1,45 @@
 import CouchDB from "./couchdb";
 import * as actions from "./actions";
 
-function setup(event) {
+function setup() {
   if (this._setup) return Promise.resolve();
   if (this._settingup) return this._settingup;
-  return (this._settingup = (async () => {
-    await this.couch.load();
+  return (this._settingup = this.fire("setup"));
+}
 
-    try {
-      await this.couch.request("PUT", this.dbname);
-    } catch(e) {
-      if (e.status !== 412) throw e;
-    }
+async function setupEvent() {
+  await this.couch.load();
 
-    await event.reduce((m, fn, ob) => {
-      return fn.call(ob, event);
-    });
-  })());
+  try {
+    await this.couch.request("PUT", this.dbname);
+  } catch(e) {
+    if (e.status !== 412) throw e;
+  }
 }
 
 export default function(model) {
+  const {couchdb} = model.conf;
+  if (!couchdb) return;
+
   const backend = this.backend("couchdb");
-  const {database} = model.conf;
   let couch;
 
-  if (database && typeof database === "string") {
-    couch = backend.findById(database);
-  } else if (CouchDB.isCouchDB(database)) {
-    couch = database;
+  if (couchdb && typeof couchdb === "string") {
+    couch = backend.findById(couchdb);
+  } else if (CouchDB.isCouchDB(couchdb)) {
+    couch = couchdb;
   }
 
   if (couch == null) {
     couch = backend.meta;
   }
 
+  model.backend = backend;
   model.couch = couch;
   model.dbname = model.conf.dbname || model.name;
   model.db = couch.createPouchDB(model.dbname);
+
   model.action(actions);
-  model.registerEventHandler("setup", setup);
+  model.setup = setup;
+  model.observe("setup", setupEvent);
 }

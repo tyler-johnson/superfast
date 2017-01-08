@@ -1,5 +1,5 @@
 {
-  "name": "superfast-error",
+  "name": "superfast-plugin-authenticate",
   "version": "0.0.0",
   "main": "lib/index.js",
   "dependencies": {},

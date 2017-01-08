@@ -1,5 +1,5 @@
 {
-  "name": "superfast-plugin-users",
+  "name": "superfast-plugin-couchdb-users",
   "version": "0.0.0",
   "main": "lib/index.js",
   "dependencies": {

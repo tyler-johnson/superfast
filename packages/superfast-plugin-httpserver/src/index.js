@@ -42,14 +42,6 @@ export default function() {
       //   }
       // });
 
-      // // authenticate requests
-      // router.use(function(req, res, next) {
-      //   api.authenticate(req.get("authorization")).then(r => {
-      //     req.user = r || {};
-      //     next();
-      //   }).catch(next);
-      // });
-
       // core model routes
       router.use(modelRouter);
 

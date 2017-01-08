@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "main": "lib/index.js",
   "dependencies": {
-    "lodash": "^4.17.3"
+    "lodash": "^4.17.3",
+    "superfast-error": "*"
   },
   "files": [
     "lib"

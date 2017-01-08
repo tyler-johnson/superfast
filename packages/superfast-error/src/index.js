@@ -1,12 +1,10 @@
-import {check} from "superfast-util-check";
-
 export default class SuperfastError extends Error {
   constructor(status, code, message) {
     super();
-    this.status = check(status, "number", "Expecting number for status.");
-    this.code = check(code, ["string","truthy"], "Expecting non-empty string for code.");
-    this.message = check(message, ["string","truthy"], "Expecting non-empty string for message.");
-    this.stack = (new Error()).stack;
+    this.status = status;
+    this.code = code;
+    this.message = message;
+    this.stack = (new Error(this.toString())).stack;
   }
 
   name = "SuperfastError";

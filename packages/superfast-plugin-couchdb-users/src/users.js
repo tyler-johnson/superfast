@@ -4,10 +4,10 @@ import {Model} from "superfast";
 export default function() {
   const users = new Model({
     name: "users",
+    couchdb: true,
     dbname: "_users",
     query: {
-      view: "find/by_name",
-      include_docs: true
+      view: "find/by_name"
     }
   });
 
@@ -17,13 +17,13 @@ export default function() {
 }
 
 const events = {
-  async setup(e, db) {
-    const sec = db.security();
+  async setup() {
+    const sec = this.db.security();
     sec.admins.roles.add("_admin");
     sec.members.roles.add("_admin");
     await sec.save();
 
-    const find = db.design("find");
+    const find = this.db.design("find");
     find.view("by_name", function(doc) {
       if (doc.type === "user") emit(doc.name, {
         rev: doc._rev,
@@ -34,9 +34,11 @@ const events = {
     await find.save();
   },
   validate(e, id) {
-    if (!id || e.action === "get") return true;
-    const {name} = e.userCtx;
-    return name === id;
+    // all create, get and query are allowed
+    if (["get","query","create"].includes(e.action)) return true;
+    
+    // writes only allowed on own user doc
+    return e.userCtx && id ? e.userCtx.name === id : false;
   },
   normalize(e, data) {
     if (e.action === "create") {

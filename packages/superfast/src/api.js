@@ -9,6 +9,7 @@ export default class API extends Observer {
     EventEmitter.call(this);
     this.conf = conf;
     this.models = {};
+    this._onModel = [];
     this.backends = {};
   }
 
@@ -31,13 +32,34 @@ export default class API extends Observer {
         model = new Model(model);
       }
 
+      if (this.models[model.name] != null) {
+        throw new Error(`Model '${name}' already exists on API`);
+      }
+
       this.models[model.name] = model;
       model.init(this);
       this.emit("model", model);
+      this._reactModel(model);
       return model;
     }
 
     throw new Error("Expecting model name or an object of config");
+  }
+
+  onModel(fn) {
+    check(fn, "function", "Expecting function");
+    this._onModel.push(fn);
+    Object.keys(this.models).forEach(k => fn.call(this, this.models[k]));
+    return this;
+  }
+
+  _reactModel(model) {
+    const fns = this._onModel.slice();
+
+    while (fns.length) {
+      const fn = fns.shift();
+      fn.call(this, model);
+    }
   }
 
   backend(name, backend) {

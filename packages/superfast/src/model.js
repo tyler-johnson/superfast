@@ -12,7 +12,14 @@ export default class Model extends Observer {
     EventEmitter.call(this);
 
     this.conf = conf;
-    this.name = check(conf.name, ["string","truthy"], "Expecting non-empty string for model name.");
+    this._onAction = [];
+
+    Object.defineProperty(this, "name", {
+      value: check(conf.name, ["string","truthy"], "Expecting non-empty string for model name."),
+      writeable: false,
+      configurable: false,
+      enumerable: true
+    }); 
 
     if (conf.schema) {
       const ajv = new Ajv({
@@ -48,11 +55,32 @@ export default class Model extends Observer {
     check(name, ["string","truthy"], "Expecting non-empty string for action name.");
 
     if (typeof fn === "function") {
-      this.actions[name] = new Action(this, name, fn, opts);
-      this.emit("action", this.actions[name]);
+      if (this.actions[name] != null) {
+        throw new Error(`Action '${name}' already exists on the model '${this.name}'`);
+      }
+      
+      const action = this.actions[name] = new Action(this, name, fn, opts);
+      this.emit("action", action);
+      this._reactAction(action);
     }
 
     return this.actions[name];
+  }
+  
+  onAction(fn) {
+    check(fn, "function", "Expecting function");
+    this._onAction.push(fn);
+    Object.keys(this.actions).forEach(k => fn.call(this, this.actions[k]));
+    return this;
+  }
+
+  _reactAction(action) {
+    const fns = this._onAction.slice();
+
+    while (fns.length) {
+      const fn = fns.shift();
+      fn.call(this, action);
+    }
   }
 
   context(userCtx, evtData) {

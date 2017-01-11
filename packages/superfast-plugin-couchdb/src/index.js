@@ -13,6 +13,6 @@ export default function(conf) {
     api.registerEventHandler(eventHandlers);
 
     // manipulate every model to be created on the api
-    api.on("model", initModel);
+    api.onModel(initModel);
   };
 }

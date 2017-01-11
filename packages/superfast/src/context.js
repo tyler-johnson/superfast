@@ -14,6 +14,11 @@ export default class Context {
     return this;
   }
 
+  setUserCtx(userCtx) {
+    this.userCtx = userCtx;
+    return this;
+  }
+
   eventData(mixin) {
     return {
       ...this.evtData,

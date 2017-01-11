@@ -3,7 +3,7 @@ import express from "express";
 // import bodyParser from "./body-parser";
 import handleErrors from "./errors";
 import {NoRouteError} from "superfast-error";
-import createModelRouter from "./model";
+import installModelAPIs from "./model";
 
 function responseEvent(event, data, res) {
   return event.reduce((m, fn, ob) => {
@@ -13,7 +13,7 @@ function responseEvent(event, data, res) {
 
 export default function() {
   return function(api) {
-    const modelRouter = createModelRouter(api);
+    api.onModel(installModelAPIs);
     api.registerEventHandler("response", responseEvent);
 
     api.createRouter = function() {
@@ -43,7 +43,7 @@ export default function() {
       // });
 
       // core model routes
-      router.use(modelRouter);
+      api.onModel((m) => m.installRouter(router));
 
       // handle errors
       router.use(() => { throw new NoRouteError(); });

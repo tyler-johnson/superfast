@@ -133,21 +133,26 @@ export default class CouchDB {
   }
 
   createPouchDB(dbname, opts={}) {
-    let headers;
+    const o = {
+      skipSetup: true,
+      ...opts,
+      adapter: "http"
+    };
 
-    if (opts.userCtx) {
+    if (typeof opts.userCtx !== "undefined") {
       const {name,roles} = opts.userCtx || {};
-      const {secret} = this._options;
-      headers = proxyAuth(name, roles, secret);
+      delete o.userCtx;
+      
+      if (name) {
+        const {secret} = this._options;
+        const headers = proxyAuth(name, roles, secret);
+        o.headers = { ...o.headers, ...headers };
+      }
+    } else if (!o.auth && this._auth) {
+      o.auth = this._auth;
     }
 
-    return new PouchDB(this.privateUrl(dbname), {
-      skipSetup: true,
-      auth: this._auth,
-      ...opts,
-      headers: { ...opts.headers, ...headers },
-      adapter: "http"
-    });
+    return new PouchDB(this.privateUrl(dbname), o);
   }
 
   extractDBName(dburl) {

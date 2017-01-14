@@ -67,6 +67,7 @@ export default class API extends Observer {
     
     if (typeof backend === "object" && backend != null) {
       this.backends[name] = backend;
+      this.emit("backend:" + name, backend);
     }
     
     return this.backends[name];

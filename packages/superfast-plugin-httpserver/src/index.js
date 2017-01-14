@@ -20,28 +20,6 @@ export default function() {
       const router = express();
       this.emit("router", router);
 
-      // // create auth proxies for database that are missing proxy info
-      // const manager = api.couchdbs;
-      // const authProxies = manager.databases.reduce((proxies, db) => {
-      //   if (!db.privateOnly && !db._proxyUrl) {
-      //     proxies[db.id] = authProxy({
-      //       target: db._url,
-      //       authenticate: api.authenticate
-      //     });
-      //   }
-
-      //   return proxies;
-      // }, {});
-
-      // // database auth proxies
-      // router.use("/:dbid", function(req, res, next) {
-      //   if (authProxies[req.params.dbid]) {
-      //     authProxies[req.params.dbid](req, res, next);
-      //   } else {
-      //     next();
-      //   }
-      // });
-
       // core model routes
       api.onModel((m) => m.installRouter(router));
 

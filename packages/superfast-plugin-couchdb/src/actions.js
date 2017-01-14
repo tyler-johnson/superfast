@@ -24,7 +24,7 @@ export const query = [
     await ctx.model.setup();
     await ctx.fire(this, "validate", null, opts);
     const popts = pouchOpts(false, ctx.model.conf.query, null, opts);
-    const {total_rows,rows} = await fetch(ctx.model.db, popts);
+    const {total_rows,rows} = await fetch(ctx.db, popts);
     
     let newrows = new Array(rows.length);
     for (let i = 0; i < rows.length; i++) {
@@ -56,7 +56,7 @@ export const get = [
     check(key, ["string","truthy"], "Expecting non-empty string for key");
     return eventWrapper(this, ctx, [key,opts], async () => {
       const popts = pouchOpts(true, ctx.model.conf.query, key, opts);
-      const res = await fetch(ctx.model.db, popts);
+      const res = await fetch(ctx.db, popts);
       throwIfMissing.call(this, res);
       return res;
     });

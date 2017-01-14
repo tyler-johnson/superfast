@@ -37,7 +37,7 @@ function addActionRouter(action, router) {
 
 function attachContext(model) {
   return function(req, res, next) {
-    req.context = model.context();
+    req.context = model.context(req.user || {});
     next();
   };
 }

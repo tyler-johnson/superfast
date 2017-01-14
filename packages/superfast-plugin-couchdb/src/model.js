@@ -17,6 +17,12 @@ async function setupEvent() {
   }
 }
 
+function equipDatabase(ctx) {
+  ctx.db = this.couch.createPouchDB(this.dbname, {
+    userCtx: ctx.userCtx
+  });
+}
+
 export default function(model) {
   const {couchdb} = model.conf;
   if (!couchdb) return;
@@ -42,4 +48,5 @@ export default function(model) {
   model.action(actions);
   model.setup = setup;
   model.observe("setup", setupEvent);
+  model.on("context", equipDatabase);
 }

@@ -18,11 +18,6 @@ export default function() {
 
 const events = {
   async setup() {
-    const sec = this.db.security();
-    sec.admins.roles.add("_admin");
-    sec.members.roles.add("_admin");
-    await sec.save();
-
     const find = this.db.design("find");
     find.view("by_name", function(doc) {
       if (doc.type === "user") emit(doc.name, {

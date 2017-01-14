@@ -1,6 +1,7 @@
 import Backend from "./backend";
 import initModel from "./model";
 import * as eventHandlers from "./event-handlers";
+import attachRouter from "./router";
 
 export default function(conf) {
   const backend = new Backend(conf);
@@ -14,5 +15,8 @@ export default function(conf) {
 
     // manipulate every model to be created on the api
     api.onModel(initModel);
+
+    // attach db proxy routes
+    api.on("router", attachRouter);
   };
 }

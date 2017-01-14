@@ -4,7 +4,13 @@ import * as actions from "./actions";
 function setup() {
   if (this._setup) return Promise.resolve();
   if (this._settingup) return this._settingup;
-  return (this._settingup = this.fire("setup"));
+  return (this._settingup = this.fire("setup").then(() => {
+    this._setup = true;
+    delete this._settingup;
+  }, (e) => {
+    delete this._settingup;
+    throw e;
+  }));
 }
 
 async function setupEvent() {

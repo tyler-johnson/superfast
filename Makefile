@@ -22,27 +22,32 @@ test: build
 define GEN_BABEL
 $1: packages/$1
 
-packages/$1: $(subst /src/,/lib/,$2)
+packages/$1: $(subst /src/,/,$2)
 
-packages/$1/lib/cli.js: packages/$1/src/cli.js
-	mkdir -p `dirname $$@`
-	echo "#!/usr/bin/env node" > $$@
-	$(BIN)/babel $$< >> $$@
-	chmod +x $$@
+packages/$1/index.js: packages/$1/src/index.js $$(wildcard packages/$1/src/*)
+	$(BIN)/rollup $$< -c > $$@
 
-packages/$1/lib/%.js: packages/$1/src/%.js
-	mkdir -p `dirname $$@`
-	$(BIN)/babel $$< > $$@
+# packages/$1/lib/cli.js: packages/$1/src/cli.js
+# 	mkdir -p `dirname $$@`
+# 	echo "#!/usr/bin/env node" > $$@
+# 	$(BIN)/babel $$< >> $$@
+# 	chmod +x $$@
+
+# packages/$1/lib/%.js: packages/$1/src/%.js
+# 	mkdir -p `dirname $$@`
+# 	$(BIN)/babel $$< > $$@
 
 test-$1: packages/$1/test/index.js build
 	$(BIN)/babel-node $$<
 endef
 
 $(foreach pkg,$(PKGNAMES), \
-	$(eval $(call GEN_BABEL,$(pkg),$(wildcard packages/$(pkg)/src/*.js packages/$(pkg)/src/*/*.js))))
+	$(eval $(call GEN_BABEL,$(pkg),$(wildcard packages/$(pkg)/src/index.js packages/$(pkg)/src/*/*.js))))
 
 clean:
-	rm -rf cli.js $(wildcard packages/*/lib)
+	rm -rf cli.js $(wildcard packages/*/index.js)
+
+clean-all: clean
 	$(BIN)/lerna clean --yes
 
-.PHONY: build $(PKGNAMES) clean bootstrap test $(TESTS)
+.PHONY: build $(PKGNAMES) clean clean-all bootstrap test $(TESTS)

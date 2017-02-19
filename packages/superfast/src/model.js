@@ -1,6 +1,4 @@
 import {check} from "superfast-util-check";
-import {compile} from "kontur";
-import Ajv from "ajv";
 import Observer from "superfast-observer";
 import Action from "./action";
 import Context from "./context";
@@ -19,16 +17,7 @@ export default class Model extends Observer {
       writeable: false,
       configurable: false,
       enumerable: true
-    }); 
-
-    if (conf.schema) {
-      const ajv = new Ajv({
-        useDefaults: true,
-        removeAdditional: "all"
-      });
-
-      this.schema = ajv.compile(compile(conf.schema));
-    }
+    });
   }
 
   static isModel(m) {

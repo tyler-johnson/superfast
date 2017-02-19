@@ -1,0 +1,12 @@
+{
+  "name": "superfast-plugin-schema",
+  "version": "0.0.0",
+  "main": "index.js",
+  "dependencies": {
+    "ajv": "^4.10.3",
+    "kontur": "^0.2.0"
+  },
+  "files": [
+    "index.js"
+  ]
+}

@@ -20,6 +20,6 @@
     "superfast-util-url": "*"
   },
   "files": [
-    "lib"
+    "index.js"
   ]
 }

@@ -1,14 +1,12 @@
 {
   "name": "superfast",
   "version": "0.0.0",
-  "main": "lib/index.js",
+  "main": "index.js",
   "dependencies": {
-    "ajv": "^4.10.3",
-    "kontur": "^0.2.0",
     "superfast-observer": "*",
     "superfast-util-check": "*"
   },
   "files": [
-    "lib"
+    "index.js"
   ]
 }

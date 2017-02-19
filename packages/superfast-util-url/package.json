@@ -1,12 +1,12 @@
 {
   "name": "superfast-util-url",
   "version": "0.0.0",
-  "main": "lib/index.js",
+  "main": "index.js",
   "dependencies": {
     "lodash": "^4.17.3",
     "superfast-util-path": "*"
   },
   "files": [
-    "lib"
+    "index.js"
   ]
 }

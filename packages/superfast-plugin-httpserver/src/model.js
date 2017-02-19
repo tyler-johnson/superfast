@@ -1,4 +1,4 @@
-import {split as splitPath,normalize as normalizePath} from "superfast-util-path";
+import {normalize as normalizePath} from "superfast-util-path";
 import _bodyParser from "./body-parser";
 import {Router} from "express";
 import {defaults} from "superfast-util-check";

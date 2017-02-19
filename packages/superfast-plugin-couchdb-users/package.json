@@ -1,7 +1,7 @@
 {
   "name": "superfast-plugin-couchdb-users",
   "version": "0.0.0",
-  "main": "lib/index.js",
+  "main": "index.js",
   "dependencies": {
     "superfast-error": "*"
   },
@@ -12,6 +12,6 @@
     "superfast": "*"
   },
   "files": [
-    "lib"
+    "index.js"
   ]
 }

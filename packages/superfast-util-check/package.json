@@ -1,12 +1,12 @@
 {
   "name": "superfast-util-check",
   "version": "0.0.0",
-  "main": "lib/index.js",
+  "main": "index.js",
   "dependencies": {
     "lodash": "^4.17.3",
     "superfast-error": "*"
   },
   "files": [
-    "lib"
+    "index.js"
   ]
 }

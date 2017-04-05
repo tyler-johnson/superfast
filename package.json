@@ -8,10 +8,10 @@
   },
   "main": "index.js",
   "scripts": {
-    "lint": "eslint src/ test/",
-    "build": "make clean && make",
-    "test": "make test",
-    "prepare": "npm run build"
+    "lint": "eslint packages",
+    "build": "lerna bootstrap",
+    "clean": "lerna run clean && lerna clean --yes",
+    "prepublish": "npm run build"
   },
   "devDependencies": {
     "babel-cli": "^6.18.0",
@@ -21,7 +21,7 @@
     "babel-plugin-transform-es2015-destructuring": "^6.19.0",
     "babel-plugin-transform-object-rest-spread": "^6.20.2",
     "eslint": "^3.12.2",
-    "lerna": "2.0.0-beta.37",
+    "lerna": "2.0.0-beta.38",
     "rollup": "^0.41.3",
     "rollup-plugin-babel": "^2.7.1",
     "rollup-plugin-json": "^2.1.0",

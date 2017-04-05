@@ -1,9 +1,26 @@
 {
   "name": "superfast-plugin-authenticate",
   "version": "0.0.0",
+  "description": "",
+  "author": "Tyler Johnson <tyler@tylerjohnson.me>",
+  "repository": {
+    "type": "git",
+    "url": "https://gitlab.com/tyler-johnson/hypecms.git"
+  },
   "main": "index.js",
+  "scripts": {
+    "clean": "shx rm -f index.js",
+    "build-lib": "rollup src/index.js -c -o index.js",
+    "build": "npm-run-all clean build-lib",
+    "prepublish": "npm run build"
+  },
   "dependencies": {},
   "files": [
     "index.js"
-  ]
+  ],
+  "devDependencies": {
+    "npm-run-all": "^4.0.2",
+    "rollup": "^0.41.6",
+    "shx": "^0.2.2"
+  }
 }

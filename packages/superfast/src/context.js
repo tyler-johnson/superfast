@@ -1,7 +1,6 @@
 export default class Context {
-  constructor(model, userCtx, evtData) {
+  constructor(model, evtData) {
     this.model = model;
-    this.userCtx = userCtx;
     this.evtData = evtData;
   }
 
@@ -19,8 +18,7 @@ export default class Context {
       ...this.evtData,
       ...mixin,
       model: this.model,
-      context: this,
-      userCtx: this.userCtx
+      context: this
     };
   }
 

@@ -2,29 +2,28 @@ import {Router} from "express";
 import couchdbAuthProxy from "couchdb-auth-proxy";
 import cors from "cors";
 
-export default function(router) {
-  const manager = this.backend("couchdb");
-  if (!manager) return;
+export default function(manager) {
+  return function(router) {
+    // create auth proxies for database that are missing proxy info
+    const authProxies = manager.databases.reduce((proxies, db) => {
+      if (!db.privateOnly && !db._proxyUrl) {
+        proxies[db.id] = authProxy({
+          target: db._url
+        });
+      }
 
-  // create auth proxies for database that are missing proxy info
-  const authProxies = manager.databases.reduce((proxies, db) => {
-    if (!db.privateOnly && !db._proxyUrl) {
-      proxies[db.id] = authProxy({
-        target: db._url
-      });
-    }
-
-    return proxies;
-  }, {});
-    
-  // database auth proxies
-  router.use("/:dbid", function(req, res, next) {
-    if (authProxies[req.params.dbid]) {
-      authProxies[req.params.dbid](req, res, next);
-    } else {
-      next();
-    }
-  });
+      return proxies;
+    }, {});
+      
+    // database auth proxies
+    router.use("/:dbid", function(req, res, next) {
+      if (authProxies[req.params.dbid]) {
+        authProxies[req.params.dbid](req, res, next);
+      } else {
+        next();
+      }
+    });
+  };
 }
 
 function authProxy(api, conf={}) {

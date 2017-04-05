@@ -1,5 +1,7 @@
-import {compile} from "kontur";
+import types, {compile} from "kontur";
 import Ajv from "ajv";
+
+export {types}
 
 export default function(opts={}) {
   return function(api) {

@@ -8,9 +8,6 @@ export default class API extends Observer {
     super();
     EventEmitter.call(this);
     this.conf = conf;
-    this.models = {};
-    this._onModel = [];
-    this.backends = {};
   }
 
   static isAPI(api) {
@@ -21,6 +18,8 @@ export default class API extends Observer {
     fn.call(this, this);
     return this;
   }
+
+  models = {};
 
   model(model) {
     if (typeof model === "string") {
@@ -37,7 +36,7 @@ export default class API extends Observer {
       }
 
       this.models[model.name] = model;
-      model.init(this);
+      model.mount(this);
       this.emit("model", model);
       this._reactModel(model);
       return model;
@@ -45,6 +44,8 @@ export default class API extends Observer {
 
     throw new Error("Expecting model name or an object of config");
   }
+
+  _onModel = [];
 
   onModel(fn) {
     check(fn, "function", "Expecting function");
@@ -60,17 +61,6 @@ export default class API extends Observer {
       const fn = fns.shift();
       fn.call(this, model);
     }
-  }
-
-  backend(name, backend) {
-    check(name, "string", "Expecting string for name");
-    
-    if (typeof backend === "object" && backend != null) {
-      this.backends[name] = backend;
-      this.emit("backend:" + name, backend);
-    }
-    
-    return this.backends[name];
   }
 }
 

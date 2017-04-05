@@ -3,14 +3,27 @@ import Observer from "superfast-observer";
 import Action from "./action";
 import Context from "./context";
 import {EventEmitter} from "events";
+import API from "./api";
 
-export default class Model extends Observer {
+function MergeClass(Parent, ...inherits) {
+  class Child extends Parent {
+    constructor(...args) {
+      super(...args);
+      inherits.forEach(I => I.call(this));
+    }
+  }
+
+  inherits.forEach(I => {
+    Object.assign(Child.prototype, I.prototype);
+  });
+
+  return Child;
+}
+
+export default class Model extends MergeClass(Observer, EventEmitter) {
   constructor(conf={}) {
     super();
-    EventEmitter.call(this);
-
     this.conf = conf;
-    this._onAction = [];
 
     Object.defineProperty(this, "name", {
       value: check(conf.name, ["string","truthy"], "Expecting non-empty string for model name."),
@@ -24,10 +37,19 @@ export default class Model extends Observer {
     return m instanceof Model;
   }
 
-  init(api) {
-    check(this.api, "empty", "This model has already been initiated with an API.");
-    this._observerParent = this.api = api;
-    this.emit("mount", api);
+  mount(parent) {
+    check(this._observerParent, "empty", "This model has already been mounted to a parent.");
+
+    if (Model.isModel(parent)) {
+      this.api = parent.api;
+    } else if (API.isAPI(parent)) {
+      this.api = parent;
+    } else {
+      throw new Error("Expecting model or api for parent");
+    }
+
+    this._observerParent = parent;
+    this.emit("mount", parent);
     return this;
   }
 
@@ -55,6 +77,8 @@ export default class Model extends Observer {
 
     return this.actions[name];
   }
+
+  _onAction = [];
   
   onAction(fn) {
     check(fn, "function", "Expecting function");
@@ -72,8 +96,8 @@ export default class Model extends Observer {
     }
   }
 
-  context(userCtx, evtData) {
-    const ctx = new Context(this, userCtx, evtData);
+  context(evtData) {
+    const ctx = new Context(this, evtData);
 
     Object.keys(this.actions).forEach(k => {
       if (k in ctx) return;
@@ -95,5 +119,3 @@ export default class Model extends Observer {
     return ctx;
   }
 }
-
-Object.assign(Model.prototype, EventEmitter.prototype);

@@ -28,8 +28,8 @@ async function middleware(req, res, next) {
 
 export default function() {
   return function(api) {
-    api.registerEventHandler("authenticate", authHandler);
     api.authenticate = authenticate;
+    api.registerEventHandler("authenticate", authHandler);
     api.on("router", (r) => r.use(middleware.bind(api)));
   };
 }

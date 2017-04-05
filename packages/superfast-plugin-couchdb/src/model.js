@@ -29,30 +29,30 @@ function equipDatabase(ctx) {
   });
 }
 
-export default function(model) {
-  const {couchdb} = model.conf;
-  if (!couchdb) return;
+export default function(backend) {
+  return function(model) {
+    const {couchdb} = model.conf;
+    if (!couchdb) return;
 
-  const backend = this.backend("couchdb");
-  let couch;
+    let couch;
+    if (couchdb && typeof couchdb === "string") {
+      couch = backend.findById(couchdb);
+    } else if (CouchDB.isCouchDB(couchdb)) {
+      couch = couchdb;
+    }
 
-  if (couchdb && typeof couchdb === "string") {
-    couch = backend.findById(couchdb);
-  } else if (CouchDB.isCouchDB(couchdb)) {
-    couch = couchdb;
-  }
+    if (couch == null) {
+      couch = backend.meta;
+    }
 
-  if (couch == null) {
-    couch = backend.meta;
-  }
+    model.backend = backend;
+    model.couch = couch;
+    model.dbname = model.conf.dbname || model.name;
+    model.db = couch.createPouchDB(model.dbname);
 
-  model.backend = backend;
-  model.couch = couch;
-  model.dbname = model.conf.dbname || model.name;
-  model.db = couch.createPouchDB(model.dbname);
-
-  model.action(actions);
-  model.setup = setup;
-  model.observe("setup", setupEvent);
-  model.on("context", equipDatabase);
+    model.action(actions);
+    model.setup = setup;
+    model.observe("setup", setupEvent);
+    model.on("context", equipDatabase);
+  };
 }

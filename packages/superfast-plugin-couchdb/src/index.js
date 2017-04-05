@@ -8,15 +8,15 @@ export default function(conf) {
 
   return function(api) {
     // add couchdb backend
-    api.backend("couchdb", backend);
+    api.couchdb = backend;
 
     // register event handlers used by couchdb actions
     api.registerEventHandler(eventHandlers);
 
     // manipulate every model to be created on the api
-    api.onModel(initModel);
+    api.onModel(initModel(backend));
 
     // attach db proxy routes
-    api.on("router", attachRouter);
+    api.on("router", attachRouter(backend));
   };
 }

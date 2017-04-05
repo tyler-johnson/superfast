@@ -16,8 +16,6 @@ PouchDB.plugin(securityPlugin);
 
 const debug = _debug("pagedip-api:couchdb");
 const proxy_handler = /{couch_httpd_auth,\s*proxy_authentication_handler}/i;
-// time that a cached database size is good for, 5 minutes
-const DEFAULT_TIMEOUT = 5 * 60 * 1000;
 
 export default class CouchDB {
   constructor(config, opts={}) {
@@ -89,14 +87,9 @@ export default class CouchDB {
     }
 
     const {protocol="http:",host="127.0.0.1:5984",pathname,auth,query} = config;
-    const {proxy,alts,id} = this._options = { ...config, ...query };
+    const {proxy,id} = this._options = { ...config, ...query };
 
     this.id = id || uniqueId("db");
-
-    this._alts = [].concat(alts)
-      .filter(a => typeof a === "string")
-      .filter(Boolean)
-      .map(a => parse(a, false, true));
 
     if (proxy) {
       const {_protocol, _host, _pathname} = parse(proxy);
@@ -152,46 +145,14 @@ export default class CouchDB {
       o.auth = this._auth;
     }
 
-    return new PouchDB(this.privateUrl(dbname), o);
+    return new PouchDB(this.getCouchDBUrl(dbname), o);
   }
 
-  extractDBName(dburl) {
-    if (typeof dburl === "string") dburl = parse(dburl, false, true);
-
-    const urls = [].concat(this._alts);
-    const publicUrl = this.publicUrl();
-    if (publicUrl) urls.unshift(parse(publicUrl, false, true));
-
-    while (urls.length) {
-      const url = urls.shift();
-      if (!urlContains(dburl, url)) continue;
-
-      return (dburl.pathname || "")
-        .substr((url.pathname || "").length)
-        .split("/")
-        .filter(Boolean)[0];
-    }
+  getCouchDBUrl(dbname) {
+    return joinUrl(this._url, dbname);
   }
 
-  privateUrl(dbname) {
-    if (dbname == null) return this._url;
-
-    const couchurl = parse(this._url, false, true);
-    const dburl = parse(dbname, false, true);
-
-    // test against private url
-    if (dburl.host && dburl.host === couchurl.host) {
-      return dbname;
-    }
-
-    const _dbname = this.extractDBName(dburl);
-    const url = joinUrl(couchurl, _dbname || dbname || "");
-
-    this.debug("resolved private db url : %s -> %s", dbname, url);
-    return url;
-  }
-
-  publicUrl(dbname) {
+  getProxyUrl(dbname) {
     if (this.privateOnly) return null;
 
     let proxyUrl;
@@ -199,38 +160,11 @@ export default class CouchDB {
     else proxyUrl = "/" + this.id;
 
     if (dbname != null) {
-      const _dbname = this.extractDBName(dbname);
-      proxyUrl = joinUrl(proxyUrl, _dbname || dbname);
+      proxyUrl = joinUrl(proxyUrl, dbname);
       this.debug("resolved public db url : %s -> %s", dbname, proxyUrl);
     }
 
     return proxyUrl;
-  }
-
-  testUrl(url) {
-    if (typeof url === "string") url = parse(url, false, true);
-    const pub = parse(this.publicUrl(), false, true);
-    return urlContains(url, pub) || this._alts.some(a => {
-      return urlContains(url, a);
-    });
-  }
-
-  async size() {
-    const size = this._size;
-    const last_fetch = this._size_fetch;
-
-    if (size != null && last_fetch && ((Date.now() - last_fetch) < DEFAULT_TIMEOUT)) {
-      return size;
-    }
-
-    return this.updateSize();
-  }
-
-  async updateSize() {
-    const dbs = await this.request("GET", "/_all_dbs");
-    this._size = dbs.length;
-    this._size_fetch = Date.now();
-    return this._size;
   }
 
   async configure(config) {
